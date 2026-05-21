@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: bff-service
+  namespace: argocd
+spec:
+  project: aiops
+  source:
+    repoURL: https://github.com/OWNER/aiops.git
+    targetRevision: main
+    path: services/bff-service/k8s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: aiops
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

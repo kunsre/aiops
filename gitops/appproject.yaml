@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: aiops
+  namespace: argocd
+spec:
+  description: AIOps Multi-Agent Self-Healing System
+  sourceRepos:
+    - '*'
+  destinations:
+    - namespace: aiops
+      server: https://kubernetes.default.svc
+    - namespace: aiops-sandbox
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
