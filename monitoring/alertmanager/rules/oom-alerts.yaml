@@ -1,0 +1,24 @@
+groups:
+  - name: oom-alerts
+    rules:
+      - alert: ContainerHighMemory
+        expr: |
+          (container_memory_usage_bytes{name=~".*data-worker.*"} / container_spec_memory_limit_bytes{name=~".*data-worker.*"}) > 0.8
+        for: 10s
+        labels:
+          severity: warning
+          service: data-worker
+        annotations:
+          summary: "data-worker memory usage above 80%"
+          description: "Container {{ $labels.name }} memory usage is {{ $value | humanizePercentage }}"
+
+      - alert: ContainerOOMKilled
+        expr: |
+          increase(container_oom_events_total{name=~".*data-worker.*"}[1m]) > 0
+        for: 0s
+        labels:
+          severity: critical
+          service: data-worker
+        annotations:
+          summary: "data-worker OOMKilled"
+          description: "Container {{ $labels.name }} was OOMKilled"

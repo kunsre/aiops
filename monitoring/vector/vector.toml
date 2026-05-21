@@ -1,0 +1,24 @@
+[sources.docker_logs]
+type = "docker_logs"
+
+[transforms.parse]
+type = "remap"
+inputs = ["docker_logs"]
+source = '''
+.service = .container_name
+.timestamp = .timestamp
+'''
+
+[sinks.victorialogs]
+type = "elasticsearch"
+inputs = ["parse"]
+endpoints = ["http://victorialogs:9428/insert/elasticsearch/"]
+id_key = "id"
+mode = "bulk"
+api_version = "v8"
+healthcheck.enabled = false
+
+[sinks.stdout]
+type = "console"
+inputs = ["parse"]
+encoding.codec = "json"

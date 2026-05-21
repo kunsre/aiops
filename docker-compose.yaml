@@ -1,0 +1,100 @@
+services:
+  # ============ Demo Microservices ============
+  data-worker:
+    build: ./services/data-worker
+    ports:
+      - "8000:8000"
+    mem_limit: 256m
+    memswap_limit: 256m
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  api-gateway:
+    build: ./services/api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - DATA_WORKER_URL=http://data-worker:8000
+      - CORE_BUSINESS_URL=http://core-business:8081
+      - BFF_SERVICE_URL=http://bff-service:3000
+    depends_on:
+      - data-worker
+      - core-business
+      - bff-service
+
+  core-business:
+    build: ./services/core-business
+    ports:
+      - "8081:8081"
+    mem_limit: 512m
+
+  bff-service:
+    build: ./services/bff-service
+    ports:
+      - "3000:3000"
+    environment:
+      - DATA_WORKER_URL=http://data-worker:8000
+      - CORE_BUSINESS_URL=http://core-business:8081
+    depends_on:
+      - data-worker
+      - core-business
+
+  # ============ Monitoring Stack ============
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.106.1
+    ports:
+      - "8428:8428"
+    volumes:
+      - ./monitoring/victoriametrics/scrape-configs.yaml:/etc/victoriametrics/promscrape.yml
+    command:
+      - "-promscrape.config=/etc/victoriametrics/promscrape.yml"
+      - "-storageDataPath=/victoria-metrics-data"
+
+  victorialogs:
+    image: victoriametrics/victoria-logs:v1.3.2-victorialogs
+    ports:
+      - "9428:9428"
+
+  vector:
+    image: timberio/vector:0.43.1-alpine
+    volumes:
+      - ./monitoring/vector/vector.toml:/etc/vector/vector.toml
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - victorialogs
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yaml:/etc/alertmanager/alertmanager.yml
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+
+  vmalert:
+    image: victoriametrics/vmalert:v1.106.1
+    volumes:
+      - ./monitoring/alertmanager/rules:/etc/vmalert/rules
+    command:
+      - "-rule=/etc/vmalert/rules/*.yaml"
+      - "-datasource.url=http://victoriametrics:8428"
+      - "-notifier.url=http://alertmanager:9093"
+      - "-remoteRead.url=http://victoriametrics:8428"
+      - "-remoteWrite.url=http://victoriametrics:8428"
+    depends_on:
+      - victoriametrics
+      - alertmanager
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.51.0
+    ports:
+      - "8082:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    privileged: true

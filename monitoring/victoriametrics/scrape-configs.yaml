@@ -1,0 +1,27 @@
+scrape_configs:
+  - job_name: 'cadvisor'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  - job_name: 'data-worker'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['data-worker:8000']
+    metrics_path: /healthz
+
+  - job_name: 'api-gateway'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['api-gateway:8080']
+
+  - job_name: 'core-business'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['core-business:8081']
+    metrics_path: /actuator/health
+
+  - job_name: 'bff-service'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['bff-service:3000']
