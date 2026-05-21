@@ -1,0 +1,16 @@
+{
+  "name": "bff-service",
+  "version": "0.1.0",
+  "description": "BFF aggregator service for AIOps demo",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "express": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-worker
+  namespace: aiops
+  labels:
+    app: data-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: data-worker
+  template:
+    metadata:
+      labels:
+        app: data-worker
+    spec:
+      containers:
+        - name: data-worker
+          image: data-worker:latest
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 3
+            periodSeconds: 5

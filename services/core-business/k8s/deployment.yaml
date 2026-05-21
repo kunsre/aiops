@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: core-business
+  namespace: aiops
+  labels:
+    app: core-business
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: core-business
+  template:
+    metadata:
+      labels:
+        app: core-business
+    spec:
+      containers:
+        - name: core-business
+          image: core-business:latest
+          ports:
+            - containerPort: 8081
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+            initialDelaySeconds: 20
+            periodSeconds: 5
