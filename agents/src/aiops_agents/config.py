@@ -28,6 +28,6 @@ def get_llm(agent_name: str = "monitor", temperature: float = 0.0, max_tokens: i
 VICTORIAMETRICS_URL = os.getenv("VICTORIAMETRICS_URL", "http://localhost:8428")
 VICTORIALOGS_URL = os.getenv("VICTORIALOGS_URL", "http://localhost:9428")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
-GITHUB_REPO = os.getenv("GITHUB_REPO", "")
+GITHUB_REPO = os.getenv("GITHUB_REPO", "kunsre/aiops")
 ARGOCD_URL = os.getenv("ARGOCD_URL", "http://localhost:8080")
 ARGOCD_TOKEN = os.getenv("ARGOCD_TOKEN", "")

@@ -12,6 +12,7 @@ dependencies = [
     "httpx>=0.27",
     "pygithub>=2.5",
     "langchain-anthropic>=1.4.3",
+    "rich>=15.0.0",
 ]
 
 [project.optional-dependencies]

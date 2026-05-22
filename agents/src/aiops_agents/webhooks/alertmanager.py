@@ -4,7 +4,7 @@ from uuid import uuid4
 from fastapi import BackgroundTasks, FastAPI
 from pydantic import BaseModel
 
-from aiops_agents.graph import graph
+from aiops_agents.runner import run_pipeline
 from aiops_agents.state import AgentState, TriggerSource
 
 logger = logging.getLogger(__name__)
@@ -26,12 +26,11 @@ class AlertmanagerPayload(BaseModel):
     alerts: list[Alert]
 
 
-def _run_pipeline(state: AgentState):
+def _run(alert_details: str, services: list[str]):
     try:
-        result = graph.invoke(state.model_dump())
-        logger.info(f"Pipeline {state.pipeline_id} completed with status: {result.get('status')}")
+        run_pipeline(alert_content=alert_details, target_services=services)
     except Exception as e:
-        logger.error(f"Pipeline {state.pipeline_id} failed: {e}")
+        logger.error(f"Pipeline failed: {e}", exc_info=True)
 
 
 @app.post("/webhook/alertmanager")
@@ -41,22 +40,14 @@ async def receive_alert(payload: AlertmanagerPayload, background_tasks: Backgrou
     if not firing_alerts:
         return {"status": "ignored", "reason": "no firing alerts"}
 
-    # Extract affected services from alert labels
-    services = list({a.labels.get("service", "unknown") for a in firing_alerts})
+    services = list({a.labels.get("service", a.labels.get("container", "unknown")) for a in firing_alerts})
     alert_details = "\n".join(
         f"- [{a.labels.get('alertname')}] {a.annotations.get('summary', '')}" for a in firing_alerts
     )
 
-    state = AgentState(
-        pipeline_id=uuid4(),
-        trigger_source=TriggerSource.ALERTMANAGER,
-        target_services=services,
-        messages=[{"role": "alert", "content": alert_details}],
-    )
+    background_tasks.add_task(_run, alert_details, services)
 
-    background_tasks.add_task(_run_pipeline, state)
-
-    return {"status": "pipeline_triggered", "pipeline_id": str(state.pipeline_id), "services": services}
+    return {"status": "pipeline_triggered", "services": services}
 
 
 @app.get("/healthz")

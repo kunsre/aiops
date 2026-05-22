@@ -18,6 +18,7 @@ spec:
       containers:
         - name: core-business
           image: core-business:latest
+          imagePullPolicy: Never
           ports:
             - containerPort: 8081
           resources:
