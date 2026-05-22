@@ -18,6 +18,7 @@ spec:
       containers:
         - name: data-worker
           image: data-worker:latest
+          imagePullPolicy: Never
           ports:
             - containerPort: 8000
           resources:
