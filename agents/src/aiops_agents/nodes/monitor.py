@@ -11,7 +11,7 @@ SYSTEM_PROMPT = Path(__file__).parent.parent.joinpath("prompts", "monitor.md").r
 
 def monitor_node(state: AgentState) -> dict:
     """Analyze alerts through the observability stack only (PromQL/LogQL)."""
-    llm = get_llm().bind_tools(MONITORING_TOOLS)
+    llm = get_llm("monitor").bind_tools(MONITORING_TOOLS)
 
     messages = [
         SystemMessage(content=SYSTEM_PROMPT),

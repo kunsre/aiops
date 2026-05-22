@@ -10,7 +10,7 @@ SYSTEM_PROMPT = Path(__file__).parent.parent.joinpath("prompts", "planner.md").r
 
 def planner_node(state: AgentState) -> dict:
     """Gather requirements, analyze dependencies, define acceptance criteria."""
-    llm = get_llm()
+    llm = get_llm("planner")
 
     messages = [
         SystemMessage(content=SYSTEM_PROMPT),

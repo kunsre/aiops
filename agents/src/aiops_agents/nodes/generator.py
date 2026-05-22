@@ -11,7 +11,7 @@ SYSTEM_PROMPT = Path(__file__).parent.parent.joinpath("prompts", "generator.md")
 
 def generator_node(state: AgentState) -> dict:
     """Generate fixes using source code analysis, patching, and PR creation."""
-    llm = get_llm().bind_tools(GENERATOR_TOOLS)
+    llm = get_llm("generator").bind_tools(GENERATOR_TOOLS)
 
     messages = [
         SystemMessage(content=SYSTEM_PROMPT),

@@ -11,7 +11,7 @@ SYSTEM_PROMPT = Path(__file__).parent.parent.joinpath("prompts", "evaluator.md")
 
 def evaluator_node(state: AgentState) -> dict:
     """Validate changes via GitOps deployment + read-only diagnostics."""
-    llm = get_llm().bind_tools(EVALUATOR_TOOLS)
+    llm = get_llm("evaluator").bind_tools(EVALUATOR_TOOLS)
 
     messages = [
         SystemMessage(content=SYSTEM_PROMPT),
