@@ -30,7 +30,10 @@ def generator_node(state: AgentState) -> dict:
 
         for tc in response.tool_calls:
             tool_fn = tool_map[tc["name"]]
-            result = tool_fn.invoke(tc["args"])
+            try:
+                result = tool_fn.invoke(tc["args"])
+            except Exception as e:
+                result = f"TOOL ERROR: {type(e).__name__}: {e}"
             messages.append(ToolMessage(content=str(result), tool_call_id=tc["id"]))
 
             if tc["name"] == "create_pull_request" and "github.com" in str(result):
