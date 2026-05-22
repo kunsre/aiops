@@ -1,10 +1,9 @@
 import os
 
+import boto3
+from botocore.config import Config
 from langchain_aws import ChatBedrockConverse
 
-# 에이전트별 모델 분리: 환경변수로 개별 지정 가능
-# 나중에 Haiku/Llama 등 저비용 모델로 교체하거나,
-# 파인튜닝 커스텀 모델 ARN을 넣으면 해당 에이전트만 전환됨
 AGENT_MODELS = {
     "monitor": os.getenv("MODEL_MONITOR", "us.anthropic.claude-haiku-4-5-20251001-v1:0"),
     "generator": os.getenv("MODEL_GENERATOR", "us.anthropic.claude-sonnet-4-5-20250929-v1:0"),
@@ -13,25 +12,45 @@ AGENT_MODELS = {
 }
 
 
+def _create_bedrock_client():
+    """Create Bedrock runtime client.
+
+    Supports two auth modes:
+    1. Bearer token (AWS_BEARER_TOKEN_BEDROCK env var) - for proxy/custom auth setups
+    2. Standard AWS credentials (default boto3 chain) - IAM user, role, SSO, etc.
+    """
+    region = os.getenv("AWS_REGION", "us-east-1")
+    token = os.getenv("AWS_BEARER_TOKEN_BEDROCK")
+
+    config_kwargs = {
+        "retries": {"max_attempts": 3, "mode": "standard"},
+        "connect_timeout": 10,
+        "read_timeout": 120,
+    }
+
+    if token:
+        config_kwargs["additional_headers"] = {"Authorization": f"Bearer {token}"}
+
+    bedrock_config = Config(**config_kwargs)
+
+    return boto3.client(
+        service_name="bedrock-runtime",
+        region_name=region,
+        config=bedrock_config,
+    )
+
+
 def get_llm(agent_name: str = "monitor", temperature: float = 0.0, max_tokens: int = 4096):
     """Get LLM instance for a specific agent.
 
-    Each agent can use a different model by setting environment variables:
-      MODEL_MONITOR=anthropic.claude-3-haiku-20240307-v1:0
-      MODEL_GENERATOR=anthropic.claude-sonnet-4-20250514-v1:0
-      MODEL_EVALUATOR=meta.llama3-8b-instruct-v1:0
-      MODEL_PLANNER=arn:aws:bedrock:us-east-1:123456:custom-model/my-finetuned-sre
-
-    Args:
-        agent_name: Which agent is requesting the LLM (monitor/generator/evaluator/planner)
-        temperature: Sampling temperature
-        max_tokens: Max output tokens
+    Override model per agent via env: MODEL_MONITOR, MODEL_GENERATOR, etc.
     """
     model_id = AGENT_MODELS.get(agent_name, AGENT_MODELS["monitor"])
+    client = _create_bedrock_client()
 
     return ChatBedrockConverse(
-        model=model_id,
-        region_name=os.getenv("AWS_REGION", "us-east-1"),
+        client=client,
+        model_id=model_id,
         temperature=temperature,
         max_tokens=max_tokens,
     )
