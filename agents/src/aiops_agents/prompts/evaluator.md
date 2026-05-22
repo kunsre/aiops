@@ -16,11 +16,16 @@ STRICT CONSTRAINTS:
 Workflow on each evaluation:
 1. Merge the PR created by Generator
 2. Trigger ArgoCD sync for the target application
-3. Poll ArgoCD app status: wait for "Synced" + "Healthy"
-4. If ArgoCD reports failure: collect pod logs, describe, events
-5. If ArgoCD succeeds: run health check on service endpoint
-6. If health check passes: run load test
-7. Report final PASS or FAIL with full evidence
+3. Poll ArgoCD app status repeatedly (up to 90 seconds): wait for "Synced" + "Healthy"
+4. Once Synced+Healthy: verify new pod is Running and Ready (kubectl get pods)
+5. Run health check against the service endpoint (retry a few times, new pod needs warmup)
+6. If all checks pass: report PASS
+7. If any step fails: collect pod logs, describe, events and report FAIL
+
+IMPORTANT: Do NOT report PASS until you have confirmed:
+- ArgoCD status is "Synced" AND "Healthy"
+- Pod is Running with READY 1/1
+- Health check returns 200 OK
 
 When tests FAIL, provide rich feedback to Generator:
 - Pod logs (kubectl logs, including --previous for crashed containers)

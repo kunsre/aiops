@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aiops-agent
+  namespace: aiops
+  labels:
+    app: aiops-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aiops-agent
+  template:
+    metadata:
+      labels:
+        app: aiops-agent
+    spec:
+      containers:
+        - name: aiops-agent
+          image: aiops-agent:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 9090
+          env:
+            - name: AWS_BEARER_TOKEN_BEDROCK
+              valueFrom:
+                secretKeyRef:
+                  name: aiops-secrets
+                  key: AWS_BEARER_TOKEN_BEDROCK
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: aiops-secrets
+                  key: GITHUB_TOKEN
+            - name: GITHUB_REPO
+              value: "kunsre/aiops"
+            - name: AWS_REGION
+              value: "us-east-1"
+            - name: VICTORIAMETRICS_URL
+              value: "http://victoriametrics-victoria-metrics-single-server.monitoring.svc.cluster.local:8428"
+            - name: ARGOCD_URL
+              value: "http://argocd-server.argocd.svc.cluster.local:80"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 9090
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 9090
+            initialDelaySeconds: 5
+            periodSeconds: 10
