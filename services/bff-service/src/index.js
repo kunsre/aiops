@@ -110,6 +110,35 @@ app.post("/fault/unhandled", (req, res) => {
   throw new Error("Unhandled exception: Cannot read property 'id' of undefined");
 });
 
+// === Error Handling Middleware ===
+// Catch all errors from route handlers
+app.use((err, req, res, next) => {
+  console.error("Express error handler caught:", err.message);
+  console.error(err.stack);
+  
+  if (res.headersSent) {
+    return next(err);
+  }
+  
+  res.status(500).json({
+    error: "internal_server_error",
+    message: err.message,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// === Process-Level Error Handlers ===
+// Prevent crashes from uncaught exceptions
+process.on("uncaughtException", (err) => {
+  console.error("UNCAUGHT EXCEPTION - Process will continue:", err);
+  console.error(err.stack);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("UNHANDLED REJECTION - Process will continue:", reason);
+  console.error("Promise:", promise);
+});
+
 app.listen(PORT, () => {
   console.log(`bff-service listening on :${PORT}`);
 });
