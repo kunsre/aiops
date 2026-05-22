@@ -1,10 +1,17 @@
 server:
   port: 8081
+  # BUG: connection-timeout 1초 → 느린 클라이언트 연결 끊김 (정상: 30000)
+  connection-timeout: 1000
 
 spring:
   datasource:
     url: jdbc:h2:mem:coredb
     driver-class-name: org.h2.Driver
+    hikari:
+      # BUG: maximum-pool-size 1 → 동시 요청 시 connection 대기/타임아웃 (정상: 10)
+      maximum-pool-size: 1
+      # BUG: connection-timeout 500ms → pool 대기 시 즉시 실패 (정상: 30000)
+      connection-timeout: 500
   jpa:
     hibernate:
       ddl-auto: create-drop

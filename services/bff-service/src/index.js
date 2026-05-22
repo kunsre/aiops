@@ -1,17 +1,18 @@
 const express = require("express");
+const { UPSTREAM_TIMEOUT, DATA_WORKER_PORT, MAX_CONCURRENT_REQUESTS } = require("./config");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// BUG: DATA_WORKER_PORT=9999 (wrong port) → connection refused
 const DATA_WORKER_URL =
-  process.env.DATA_WORKER_URL || "http://data-worker:8000";
+  process.env.DATA_WORKER_URL || `http://data-worker:${DATA_WORKER_PORT}`;
 const CORE_BUSINESS_URL =
   process.env.CORE_BUSINESS_URL || "http://core-business:8081";
 
 // === Fault state ===
 let errorMode = false;
 let latencyMs = 0;
-let wrongUrl = false; // simulate misconfigured upstream URL
 
 app.use(express.json());
 
@@ -27,13 +28,17 @@ app.get("/api/aggregate", async (req, res) => {
     await new Promise((r) => setTimeout(r, latencyMs));
   }
 
-  const dataUrl = wrongUrl ? "http://wrong-host:9999" : DATA_WORKER_URL;
-
   try {
+    // BUG: UPSTREAM_TIMEOUT=500ms → most requests timeout
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT);
+
     const [dataRes, itemsRes] = await Promise.all([
-      fetch(`${dataUrl}/healthz`),
-      fetch(`${CORE_BUSINESS_URL}/items`),
+      fetch(`${DATA_WORKER_URL}/healthz`, { signal: controller.signal }),
+      fetch(`${CORE_BUSINESS_URL}/items`, { signal: controller.signal }),
     ]);
+
+    clearTimeout(timeout);
 
     const data = await dataRes.json();
     const items = await itemsRes.json();
@@ -44,7 +49,15 @@ app.get("/api/aggregate", async (req, res) => {
       aggregated_at: new Date().toISOString(),
     });
   } catch (err) {
-    res.status(502).json({ error: "upstream_error", message: err.message });
+    if (err.name === "AbortError") {
+      res.status(504).json({
+        error: "upstream_timeout",
+        message: `Upstream did not respond within ${UPSTREAM_TIMEOUT}ms`,
+        config: { UPSTREAM_TIMEOUT, DATA_WORKER_PORT },
+      });
+    } else {
+      res.status(502).json({ error: "upstream_error", message: err.message });
+    }
   }
 });
 
@@ -90,23 +103,12 @@ app.post("/fault/latency/disable", (req, res) => {
   res.json({ status: "latency_removed" });
 });
 
-app.post("/fault/wrong-upstream", (req, res) => {
-  wrongUrl = true;
-  res.json({ status: "wrong_url_enabled", message: "Upstream URL set to wrong-host:9999" });
-});
-
-app.post("/fault/wrong-upstream/disable", (req, res) => {
-  wrongUrl = false;
-  res.json({ status: "wrong_url_disabled" });
-});
-
 app.post("/fault/crash", (req, res) => {
   res.json({ status: "crashing" });
   setTimeout(() => process.exit(1), 100);
 });
 
 app.post("/fault/unhandled", (req, res) => {
-  // Simulate unhandled exception → crash
   throw new Error("Unhandled exception: Cannot read property 'id' of undefined");
 });
 
