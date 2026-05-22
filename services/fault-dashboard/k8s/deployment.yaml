@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fault-dashboard
+  namespace: aiops
+  labels:
+    app: fault-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fault-dashboard
+  template:
+    metadata:
+      labels:
+        app: fault-dashboard
+    spec:
+      containers:
+        - name: fault-dashboard
+          image: fault-dashboard:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "10m"
+            limits:
+              memory: "64Mi"
+              cpu: "100m"

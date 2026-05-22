@@ -32,20 +32,17 @@ GENERATOR_TOOLS = [
     create_pull_request,
 ]
 
-# Evaluator: Read-Only 진단 + GitOps 배포 + 검증
-# - 읽기만: logs, describe, get, events, top
-# - 배포: PR merge → ArgoCD sync (직접 apply 없음)
+# Evaluator: Read-Only 진단 + 검증만 (머지는 사람이 함)
+# - 읽기: logs, describe, get, events, top
 # - 검증: health check, load test
+# - 머지/배포 권한 없음 → 검증 통과 시 "승인 대기" 알림
 EVALUATOR_TOOLS = [
     kubectl_get_pod_logs,
     kubectl_describe,
     kubectl_get,
     kubectl_get_events,
     kubectl_top,
-    trigger_test_pipeline,
     run_health_check,
     run_load_test,
-    approve_and_merge_pr,
-    sync_argocd_app,
     get_argocd_app_status,
 ]

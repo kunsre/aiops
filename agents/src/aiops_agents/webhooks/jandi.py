@@ -92,15 +92,41 @@ def send_jandi_evaluator(service: str, passed: bool, detail: str):
         )
 
 
+def send_jandi_review_request(
+    service: str, pr_url: str, rca_summary: str, fix_summary: str, evaluator_verdict: str
+):
+    """PR 리뷰 요청 알림 (Human-in-the-loop)."""
+    return _send(
+        body=f"👀 [리뷰 요청] {service} 자가복구 PR 생성됨",
+        color="#9C27B0",
+        info=[
+            {"title": "Service", "description": service},
+            {"title": "RCA", "description": rca_summary[:300]},
+            {"title": "Fix", "description": fix_summary[:300]},
+            {"title": "검증 결과", "description": evaluator_verdict[:200]},
+            {"title": "PR", "description": pr_url},
+        ],
+    )
+
+
 def send_jandi_pipeline_complete(service: str, status: str):
     """파이프라인 최종 결과 알림."""
     if status == "COMPLETED":
         return _send(
-            body=f"🎉 [AIOps] 자가복구 완료 - {service}",
-            color="#00C853",
+            body=f"✅ [AIOps] 검증 완료 - 리뷰 승인 대기 중",
+            color="#9C27B0",
             info=[
                 {"title": "Service", "description": service},
-                {"title": "Status", "description": "자동 복구 성공"},
+                {"title": "Status", "description": "에이전트 검증 통과 → 운영자 머지 승인 대기"},
+            ],
+        )
+    elif status == "RETRYING":
+        return _send(
+            body=f"🔄 [AIOps] 재시도 중 - {service}",
+            color="#FFA000",
+            info=[
+                {"title": "Service", "description": service},
+                {"title": "Status", "description": "Evaluator 검증 실패 → Generator 재수정 중"},
             ],
         )
     else:
@@ -109,6 +135,6 @@ def send_jandi_pipeline_complete(service: str, status: str):
             color="#FF0000",
             info=[
                 {"title": "Service", "description": service},
-                {"title": "Status", "description": f"복구 실패 ({status})"},
+                {"title": "Status", "description": f"복구 실패 ({status}) - 운영자 수동 개입 필요"},
             ],
         )

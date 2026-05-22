@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIOps Fault Injection Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f1117;
+            color: #e1e4e8;
+            padding: 24px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 8px;
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            text-align: center;
+            color: #6b7280;
+            margin-bottom: 32px;
+            font-size: 0.9rem;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .service-card {
+            background: #1c1f26;
+            border: 1px solid #2d3139;
+            border-radius: 12px;
+            padding: 20px;
+            transition: border-color 0.2s;
+        }
+        .service-card:hover { border-color: #4a5568; }
+        .service-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .service-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        .service-name { font-weight: 600; font-size: 1.1rem; }
+        .service-lang { color: #6b7280; font-size: 0.8rem; }
+        .fault-btn {
+            display: block;
+            width: 100%;
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            border: 1px solid #2d3139;
+            border-radius: 8px;
+            background: #252830;
+            color: #e1e4e8;
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.15s;
+        }
+        .fault-btn:hover { background: #2d3139; border-color: #4a5568; }
+        .fault-btn.danger { border-left: 3px solid #ff6b6b; }
+        .fault-btn.warning { border-left: 3px solid #feca57; }
+        .fault-btn.info { border-left: 3px solid #48dbfb; }
+        .fault-btn.recover { border-left: 3px solid #00d68f; background: #1a2e2a; }
+        .fault-btn .label { font-weight: 500; }
+        .fault-btn .desc { color: #6b7280; font-size: 0.75rem; margin-top: 2px; }
+        .status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #1c1f26;
+            border-top: 1px solid #2d3139;
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00d68f;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+        #log {
+            flex: 1;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: #9ca3af;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: #1c1f26;
+            border: 1px solid #2d3139;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+        }
+        .modal-content h3 { margin-bottom: 16px; }
+        .modal-content input {
+            width: 100%;
+            padding: 10px;
+            background: #252830;
+            border: 1px solid #2d3139;
+            border-radius: 6px;
+            color: #e1e4e8;
+            font-size: 1rem;
+            margin-bottom: 12px;
+        }
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+        .modal-actions button {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .btn-cancel { background: #374151; color: #e1e4e8; }
+        .btn-confirm { background: #ef4444; color: white; }
+    </style>
+</head>
+<body>
+    <h1>AIOps Fault Injection Dashboard</h1>
+    <p class="subtitle">클릭 한 번으로 장애를 주입하고 자가복구 에이전트의 동작을 관찰하세요</p>
+
+    <div class="grid">
+        <!-- data-worker -->
+        <div class="service-card">
+            <div class="service-header">
+                <div class="service-icon" style="background:#3b82f6">🐍</div>
+                <div>
+                    <div class="service-name">data-worker</div>
+                    <div class="service-lang">Python FastAPI</div>
+                </div>
+            </div>
+            <button class="fault-btn danger" onclick="fire('data-worker', '/fault/oom', 'POST')">
+                <div class="label">💥 OOM Kill</div>
+                <div class="desc">메모리 누수 → OOMKilled → 에이전트가 limit 상향</div>
+            </button>
+            <button class="fault-btn danger" onclick="fire('data-worker', '/fault/error500', 'POST')">
+                <div class="label">🔴 HTTP 500</div>
+                <div class="desc">모든 요청 500 에러 반환 → error rate alert</div>
+            </button>
+            <button class="fault-btn warning" onclick="promptAndFire('data-worker', '/fault/latency/', 'Latency (ms)', '3000')">
+                <div class="label">🐢 Latency Injection</div>
+                <div class="desc">응답 지연 추가 → p99 latency alert</div>
+            </button>
+            <button class="fault-btn warning" onclick="fire('data-worker', '/fault/cpu', 'POST')">
+                <div class="label">🔥 CPU Burn</div>
+                <div class="desc">CPU 100% → throttling alert</div>
+            </button>
+            <button class="fault-btn danger" onclick="fire('data-worker', '/fault/crash', 'POST')">
+                <div class="label">💀 Crash</div>
+                <div class="desc">즉시 종료 → CrashLoopBackOff</div>
+            </button>
+            <button class="fault-btn recover" onclick="recover('data-worker')">
+                <div class="label">✅ 전체 복구</div>
+                <div class="desc">모든 fault 비활성화</div>
+            </button>
+        </div>
+
+        <!-- api-gateway -->
+        <div class="service-card">
+            <div class="service-header">
+                <div class="service-icon" style="background:#00add8">🔷</div>
+                <div>
+                    <div class="service-name">api-gateway</div>
+                    <div class="service-lang">Go</div>
+                </div>
+            </div>
+            <button class="fault-btn danger" onclick="fire('api-gateway', '/fault/error503', 'POST')">
+                <div class="label">🔴 Gateway 503</div>
+                <div class="desc">게이트웨이 서비스 불능 → 전체 다운</div>
+            </button>
+            <button class="fault-btn warning" onclick="promptAndFire('api-gateway', '/fault/latency/', 'Latency (ms)', '2000')">
+                <div class="label">🐢 Proxy Latency</div>
+                <div class="desc">프록시 지연 → upstream timeout</div>
+            </button>
+            <button class="fault-btn warning" onclick="promptAndFire('api-gateway', '/fault/ratelimit/', 'Max RPS', '5')">
+                <div class="label">🚫 Rate Limit</div>
+                <div class="desc">요청 제한 → 429 Too Many Requests</div>
+            </button>
+            <button class="fault-btn danger" onclick="fire('api-gateway', '/fault/crash', 'POST')">
+                <div class="label">💀 Crash</div>
+                <div class="desc">프로세스 종료 → CrashLoopBackOff</div>
+            </button>
+            <button class="fault-btn recover" onclick="recover('api-gateway')">
+                <div class="label">✅ 전체 복구</div>
+                <div class="desc">모든 fault 비활성화</div>
+            </button>
+        </div>
+
+        <!-- bff-service -->
+        <div class="service-card">
+            <div class="service-header">
+                <div class="service-icon" style="background:#68a063">🟢</div>
+                <div>
+                    <div class="service-name">bff-service</div>
+                    <div class="service-lang">Node.js Express</div>
+                </div>
+            </div>
+            <button class="fault-btn danger" onclick="fire('bff-service', '/fault/error503', 'POST')">
+                <div class="label">🔴 Service 503</div>
+                <div class="desc">헬스체크 실패 → readiness probe fail</div>
+            </button>
+            <button class="fault-btn warning" onclick="promptAndFire('bff-service', '/fault/latency/', 'Latency (ms)', '5000')">
+                <div class="label">🐢 Response Delay</div>
+                <div class="desc">응답 지연 → timeout cascade</div>
+            </button>
+            <button class="fault-btn danger" onclick="fire('bff-service', '/fault/wrong-upstream', 'POST')">
+                <div class="label">🔗 Wrong Upstream</div>
+                <div class="desc">잘못된 URL 설정 → 502 Bad Gateway</div>
+            </button>
+            <button class="fault-btn danger" onclick="fire('bff-service', '/fault/unhandled', 'POST')">
+                <div class="label">⚡ Unhandled Error</div>
+                <div class="desc">미처리 예외 → 프로세스 crash</div>
+            </button>
+            <button class="fault-btn danger" onclick="fire('bff-service', '/fault/crash', 'POST')">
+                <div class="label">💀 Crash</div>
+                <div class="desc">강제 종료 → CrashLoopBackOff</div>
+            </button>
+            <button class="fault-btn recover" onclick="recover('bff-service')">
+                <div class="label">✅ 전체 복구</div>
+                <div class="desc">모든 fault 비활성화</div>
+            </button>
+        </div>
+
+        <!-- core-business -->
+        <div class="service-card">
+            <div class="service-header">
+                <div class="service-icon" style="background:#f89820">☕</div>
+                <div>
+                    <div class="service-name">core-business</div>
+                    <div class="service-lang">Java Spring Boot</div>
+                </div>
+            </div>
+            <button class="fault-btn danger" onclick="fire('core-business', '/fault/error500', 'POST')">
+                <div class="label">🔴 SQLException</div>
+                <div class="desc">DB 연결 실패 시뮬레이션 → 500 에러</div>
+            </button>
+            <button class="fault-btn warning" onclick="promptAndFire('core-business', '/fault/latency/', 'Latency (ms)', '5000')">
+                <div class="label">🐢 DB Latency</div>
+                <div class="desc">쿼리 지연 → slow query alert</div>
+            </button>
+            <button class="fault-btn danger" onclick="fire('core-business', '/fault/deadlock', 'POST')">
+                <div class="label">🔒 Deadlock</div>
+                <div class="desc">스레드 교착 → thread pool 고갈</div>
+            </button>
+            <button class="fault-btn danger" onclick="fire('core-business', '/fault/connection-leak', 'POST')">
+                <div class="label">🔌 Connection Leak</div>
+                <div class="desc">HikariCP 풀 고갈 → 연결 타임아웃</div>
+            </button>
+            <button class="fault-btn danger" onclick="fire('core-business', '/fault/crash', 'POST')">
+                <div class="label">💀 Crash</div>
+                <div class="desc">JVM 강제 종료 → CrashLoopBackOff</div>
+            </button>
+            <button class="fault-btn recover" onclick="recover('core-business')">
+                <div class="label">✅ 전체 복구</div>
+                <div class="desc">모든 fault 비활성화</div>
+            </button>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="status-dot"></div>
+        <div id="log">Ready - 장애를 주입하면 에이전트가 자동으로 감지하고 복구합니다</div>
+    </div>
+
+    <!-- Modal for input -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h3 id="modal-title">값 입력</h3>
+            <input type="number" id="modal-input" placeholder="값을 입력하세요">
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal()">취소</button>
+                <button class="btn-confirm" id="modal-confirm">주입</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function getServiceUrl(service) {
+            return `/proxy/${service}`;
+        }
+
+        function log(msg) {
+            const el = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            el.textContent = `[${time}] ${msg}`;
+        }
+
+        async function fire(service, path, method = 'POST') {
+            const url = getServiceUrl(service) + path;
+            log(`⏳ ${service}: ${path} 요청 중...`);
+            try {
+                const res = await fetch(url, { method });
+                const data = await res.json();
+                log(`✅ ${service}: ${JSON.stringify(data)}`);
+            } catch (err) {
+                log(`❌ ${service}: ${err.message}`);
+            }
+        }
+
+        function promptAndFire(service, pathPrefix, title, defaultVal) {
+            const modal = document.getElementById('modal');
+            const input = document.getElementById('modal-input');
+            const confirmBtn = document.getElementById('modal-confirm');
+            document.getElementById('modal-title').textContent = title;
+            input.value = defaultVal;
+            modal.classList.add('active');
+            input.focus();
+
+            confirmBtn.onclick = () => {
+                const val = input.value;
+                closeModal();
+                fire(service, pathPrefix + val, 'POST');
+            };
+            input.onkeydown = (e) => { if (e.key === 'Enter') confirmBtn.click(); };
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+
+        async function recover(service) {
+            const paths = {
+                'data-worker': ['/fault/error500/disable', '/fault/latency/disable', '/fault/cpu/disable', '/fault/disk/cleanup'],
+                'api-gateway': ['/fault/error503/disable', '/fault/latency/disable', '/fault/ratelimit/disable'],
+                'bff-service': ['/fault/error503/disable', '/fault/latency/disable', '/fault/wrong-upstream/disable'],
+                'core-business': ['/fault/error500/disable', '/fault/latency/disable'],
+            };
+            log(`🔄 ${service}: 복구 중...`);
+            for (const path of paths[service]) {
+                try { await fetch(getServiceUrl(service) + path, { method: 'POST' }); } catch {}
+            }
+            log(`✅ ${service}: 복구 완료`);
+        }
+    </script>
+</body>
+</html>

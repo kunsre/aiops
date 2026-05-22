@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fault-dashboard
+  namespace: aiops
+  labels:
+    app: fault-dashboard
+spec:
+  selector:
+    app: fault-dashboard
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP

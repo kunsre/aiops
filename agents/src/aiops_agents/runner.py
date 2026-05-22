@@ -19,6 +19,7 @@ from aiops_agents.webhooks.jandi import (
     send_jandi_generator,
     send_jandi_monitor,
     send_jandi_pipeline_complete,
+    send_jandi_review_request,
 )
 
 console = Console()
@@ -163,15 +164,34 @@ def run_pipeline(alert_content: str, target_services: list[str]):
     eval_detail = eval_results.error_logs[0][:200] if eval_results and eval_results.error_logs else "OK"
     send_jandi_evaluator(service=target_services[0], passed=passed, detail=eval_detail)
 
+    # === REVIEW REQUEST (Human-in-the-loop) ===
+    if passed and gen_result.get("proposed_changes"):
+        pr_url = gen_result["proposed_changes"][-1].pull_request_url or "N/A"
+        rca_summary = f"{rca.root_cause_service}: {rca.failure_mode}"
+        fix_summary = gen_result["proposed_changes"][-1].diff[:200]
+        evaluator_verdict = eval_detail
+
+        send_jandi_review_request(
+            service=target_services[0],
+            pr_url=pr_url,
+            rca_summary=rca_summary,
+            fix_summary=fix_summary,
+            evaluator_verdict="검증 통과 - 머지 승인 대기",
+        )
+
     # === RESULT ===
     console.print()
     final_status = eval_result.get("status", PipelineStatus.FAILED)
     send_jandi_pipeline_complete(service=target_services[0], status=final_status.value)
 
     if final_status == PipelineStatus.COMPLETED:
+        pr_link = ""
+        if gen_result.get("proposed_changes"):
+            pr_link = f"\n[dim]PR: {gen_result['proposed_changes'][-1].pull_request_url}[/dim]"
         console.print(Panel.fit(
-            "[bold green]🎉 SELF-HEALING COMPLETE[/bold green]\n"
-            f"[green]Service restored: {', '.join(target_services)}[/green]",
+            "[bold green]✅ VALIDATION PASSED[/bold green]\n"
+            f"[green]운영자 리뷰 승인 대기 중: {', '.join(target_services)}[/green]"
+            f"{pr_link}",
             border_style="green",
         ))
     elif final_status == PipelineStatus.RETRYING:
