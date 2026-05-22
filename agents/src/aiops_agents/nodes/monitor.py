@@ -10,7 +10,7 @@ SYSTEM_PROMPT = Path(__file__).parent.parent.joinpath("prompts", "monitor.md").r
 
 
 def monitor_node(state: AgentState) -> dict:
-    """Analyze alerts using all available monitoring/diagnostic tools."""
+    """Analyze alerts through the observability stack only (PromQL/LogQL)."""
     llm = get_llm().bind_tools(MONITORING_TOOLS)
 
     messages = [
@@ -48,11 +48,10 @@ def _build_analysis_prompt(state: AgentState) -> str:
     return (
         f"An alert has been received for services: {state.target_services}\n\n"
         f"Alert details:\n{alert_info}\n\n"
-        "Investigate the root cause using any combination of tools available to you:\n"
-        "- PromQL/LogQL for metrics and logs\n"
-        "- kubectl for pod status, events, logs, exec diagnostics\n"
-        "- AWS CloudWatch for infrastructure-level metrics\n"
-        "- AWS CLI for EC2/node-level diagnostics\n\n"
+        "Investigate using the monitoring stack:\n"
+        "- PromQL: resource metrics (CPU, memory, restarts, network)\n"
+        "- PromQL range: time-series trends to identify when the problem started\n"
+        "- LogQL: application error logs, stack traces, panic messages\n\n"
         "Produce an RCA report with: root_cause_service, failure_mode, evidence_logs, recommended_action."
     )
 
