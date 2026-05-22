@@ -5,13 +5,13 @@ description = "LangGraph-based autonomous SRE multi-agent system"
 requires-python = ">=3.12"
 dependencies = [
     "langgraph>=0.3",
-    "langchain-aws>=0.2",
     "langchain-core>=0.3",
     "pydantic>=2.0",
     "fastapi>=0.115",
     "uvicorn>=0.32",
     "httpx>=0.27",
     "pygithub>=2.5",
+    "langchain-anthropic>=1.4.3",
 ]
 
 [project.optional-dependencies]
