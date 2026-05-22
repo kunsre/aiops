@@ -1,18 +1,9 @@
 """Agent tool functions for interacting with external systems."""
 
 from aiops_agents.tools.git_ops import create_pull_request, get_file_content, patch_file
-from aiops_agents.tools.gitops import approve_and_merge_pr, get_argocd_app_status, sync_argocd_app
-from aiops_agents.tools.k8s_ops import (
-    kubectl_describe,
-    kubectl_get,
-    kubectl_get_events,
-    kubectl_get_pod_logs,
-    kubectl_top,
-)
 from aiops_agents.tools.logql import query_logql
 from aiops_agents.tools.promql import query_promql, query_promql_range
 from aiops_agents.tools.source_code import get_recent_commits, list_directory, read_source_file, search_code
-from aiops_agents.tools.test_runner import run_health_check, run_load_test, trigger_test_pipeline
 
 # Monitor: 관측 평면만 (모니터링 스택 경유)
 MONITORING_TOOLS = [
@@ -32,17 +23,12 @@ GENERATOR_TOOLS = [
     create_pull_request,
 ]
 
-# Evaluator: Read-Only 진단 + 검증만 (머지는 사람이 함)
-# - 읽기: logs, describe, get, events, top
-# - 검증: health check, load test
+# Evaluator: 코드 리뷰만 (클러스터 접근 없음)
+# - PR의 변경 내용을 읽고 검증
 # - 머지/배포 권한 없음 → 검증 통과 시 "승인 대기" 알림
 EVALUATOR_TOOLS = [
-    kubectl_get_pod_logs,
-    kubectl_describe,
-    kubectl_get,
-    kubectl_get_events,
-    kubectl_top,
-    run_health_check,
-    run_load_test,
-    get_argocd_app_status,
+    get_file_content,
+    read_source_file,
+    list_directory,
+    search_code,
 ]

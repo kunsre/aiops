@@ -79,18 +79,21 @@
         .fault-btn.recover { border-left: 3px solid #00d68f; background: #1a2e2a; }
         .fault-btn .label { font-weight: 500; }
         .fault-btn .desc { color: #6b7280; font-size: 0.75rem; margin-top: 2px; }
-        .status-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
+        .log-panel {
+            max-width: 1400px;
+            margin: 24px auto 0;
             background: #1c1f26;
-            border-top: 1px solid #2d3139;
-            padding: 12px 24px;
+            border: 1px solid #2d3139;
+            border-radius: 12px;
+            padding: 16px;
+        }
+        .log-header {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
+            margin-bottom: 12px;
         }
+        .log-header h3 { font-size: 0.9rem; font-weight: 500; }
         .status-dot {
             width: 8px;
             height: 8px;
@@ -100,14 +103,21 @@
         }
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
         #log {
-            flex: 1;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.85rem;
             color: #9ca3af;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
+            height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            line-height: 1.6;
         }
+        #log .entry { padding: 4px 0; border-bottom: 1px solid #2d3139; }
+        #log .entry:last-child { border-bottom: none; }
+        #log .time { color: #6b7280; }
+        #log .success { color: #00d68f; }
+        #log .error { color: #ff6b6b; }
+        #log .pending { color: #feca57; }
         .modal {
             display: none;
             position: fixed;
@@ -291,10 +301,13 @@
         </div>
     </div>
 
-    <!-- Status Bar -->
-    <div class="status-bar">
-        <div class="status-dot"></div>
-        <div id="log">Ready - 장애를 주입하면 에이전트가 자동으로 감지하고 복구합니다</div>
+    <!-- Log Panel -->
+    <div class="log-panel">
+        <div class="log-header">
+            <div class="status-dot"></div>
+            <h3>Activity Log</h3>
+        </div>
+        <div id="log"><div class="entry"><span class="time">[시작]</span> Ready - 장애를 주입하면 에이전트가 자동으로 감지하고 복구합니다</div></div>
     </div>
 
     <!-- Modal for input -->
@@ -314,10 +327,15 @@
             return `/proxy/${service}`;
         }
 
-        function log(msg) {
+        function log(msg, type = 'info') {
             const el = document.getElementById('log');
             const time = new Date().toLocaleTimeString();
-            el.textContent = `[${time}] ${msg}`;
+            const cls = msg.startsWith('✅') ? 'success' : msg.startsWith('❌') ? 'error' : msg.startsWith('⏳') ? 'pending' : '';
+            const entry = document.createElement('div');
+            entry.className = 'entry';
+            entry.innerHTML = `<span class="time">[${time}]</span> <span class="${cls}">${msg}</span>`;
+            el.appendChild(entry);
+            el.scrollTop = el.scrollHeight;
         }
 
         async function fire(service, path, method = 'POST') {
@@ -325,8 +343,13 @@
             log(`⏳ ${service}: ${path} 요청 중...`);
             try {
                 const res = await fetch(url, { method });
-                const data = await res.json();
-                log(`✅ ${service}: ${JSON.stringify(data)}`);
+                const text = await res.text();
+                try {
+                    const data = JSON.parse(text);
+                    log(`✅ ${service}: ${JSON.stringify(data)}`);
+                } catch {
+                    log(`✅ ${service}: ${text.substring(0, 200)}`);
+                }
             } catch (err) {
                 log(`❌ ${service}: ${err.message}`);
             }

@@ -10,7 +10,7 @@ SYSTEM_PROMPT = Path(__file__).parent.parent.joinpath("prompts", "evaluator.md")
 
 
 def evaluator_node(state: AgentState) -> dict:
-    """Validate changes via GitOps deployment + read-only diagnostics."""
+    """Review proposed code changes for correctness."""
     llm = get_llm("evaluator").bind_tools(EVALUATOR_TOOLS)
 
     messages = [
@@ -20,7 +20,7 @@ def evaluator_node(state: AgentState) -> dict:
 
     tool_map = {t.name: t for t in EVALUATOR_TOOLS}
 
-    for _ in range(20):
+    for _ in range(10):
         response = llm.invoke(messages)
         messages.append(response)
 
@@ -52,27 +52,24 @@ def _build_eval_prompt(state: AgentState) -> str:
     parts = [f"Target services: {state.target_services}"]
     parts.append(f"Current retry count: {state.retry_count}/3")
 
+    if state.rca_report:
+        parts.append(f"\nRCA Summary:")
+        parts.append(f"  Root cause: {state.rca_report.root_cause_service}")
+        parts.append(f"  Failure mode: {state.rca_report.failure_mode}")
+        parts.append(f"  Recommended: {state.rca_report.recommended_action}")
+
     if state.proposed_changes:
-        parts.append("\nProposed changes:")
+        parts.append("\nProposed changes to review:")
         for change in state.proposed_changes:
-            parts.append(f"  - {change.repository}: {change.file_path}")
+            parts.append(f"  - File: {change.file_path}")
+            parts.append(f"    Diff: {change.diff}")
             if change.pull_request_url:
                 parts.append(f"    PR: {change.pull_request_url}")
 
     parts.append(
-        "\nYour workflow:\n"
-        "1. Merge the PR (approve_and_merge_pr)\n"
-        "2. Trigger ArgoCD sync (sync_argocd_app)\n"
-        "3. Poll ArgoCD status until Synced+Healthy or Failed (get_argocd_app_status)\n"
-        "4. Run health check against the service endpoint\n"
-        "5. Run load test to verify stability\n\n"
-        "On FAILURE - collect diagnostics (read-only):\n"
-        "- kubectl logs (pod stderr, previous container)\n"
-        "- kubectl describe (pod events, scheduling issues)\n"
-        "- kubectl get events (namespace-level events)\n"
-        "- kubectl top (resource pressure)\n\n"
-        "Report ALL error details. You cannot apply manifests or exec into pods.\n"
-        "All deployments happen through ArgoCD only."
+        "\nReview the proposed change by reading the current file from the repo. "
+        "Determine if this fix correctly addresses the root cause. "
+        "Report PASS if it looks correct, FAIL if it won't work."
     )
     return "\n".join(parts)
 
@@ -88,6 +85,6 @@ def _parse_evaluation(content: str, state: AgentState) -> EvaluationResult:
         is_passed=False,
         error_logs=[content[:4000]],
         failed_resource=state.target_services[0] if state.target_services else None,
-        failure_phase="HEALTH_CHECK",
+        failure_phase="CODE_REVIEW",
         suggested_fix_hint=None,
     )
