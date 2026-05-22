@@ -241,9 +241,9 @@
     </div>
 
     <script>
-        function proxy(service) {
-            return `/proxy/${service}`;
-        }
+        // 모든 요청은 gateway를 통해 MSA 체인으로 흐름:
+        // dashboard → nginx /gateway/ → api-gateway → bff-service → data-worker + core-business
+        const API = '/gateway';
 
         function log(msg) {
             const el = document.getElementById('log');
@@ -259,26 +259,23 @@
             document.getElementById('log').innerHTML = '';
         }
 
-        async function callEndpoint(service, path, count = 1, concurrent = false) {
-            const url = proxy(service) + path;
+        async function callAPI(path, count = 1, concurrent = false) {
+            const url = API + path;
             const results = [];
 
             if (concurrent) {
                 const promises = Array.from({length: count}, () =>
-                    fetch(url, {method: path.includes('/fault/') ? 'POST' : 'GET'})
-                        .then(r => r.text().then(t => ({status: r.status, body: t})))
-                        .catch(e => ({status: 0, body: e.message}))
+                    fetch(url).then(r => r.text().then(t => ({status: r.status, body: t.substring(0, 200)})))
+                             .catch(e => ({status: 0, body: e.message}))
                 );
-                const res = await Promise.all(promises);
-                return res;
+                return await Promise.all(promises);
             }
 
             for (let i = 0; i < count; i++) {
                 try {
-                    const method = path.includes('/fault/') ? 'POST' : 'POST';
-                    const r = await fetch(url, {method});
+                    const r = await fetch(url);
                     const text = await r.text();
-                    results.push({status: r.status, body: text.substring(0, 150)});
+                    results.push({status: r.status, body: text.substring(0, 200)});
                 } catch (e) {
                     results.push({status: 0, body: e.message});
                 }
@@ -288,60 +285,77 @@
 
         async function runScenario(id) {
             switch (id) {
-                case 'db-timeout':
-                    log('🚀 <b>[DB Timeout]</b> data-worker /process 10회 호출 시작...');
-                    const r1 = await callEndpoint('data-worker', '/process', 10);
-                    const timeouts = r1.filter(r => r.status === 504).length;
-                    const ok = r1.filter(r => r.status === 200).length;
-                    log(`📊 결과: 504 Timeout ${timeouts}회 / 200 OK ${ok}회`);
-                    if (timeouts > 0) {
-                        log('🚨 <span style="color:#ef4444">DB_TIMEOUT=1초 버그로 인한 504 다수 발생 → alert 예상</span>');
+                case 'db-timeout': {
+                    log('🚀 <b>[DB Timeout]</b> gateway → bff → data-worker /process 체인 10회 호출...');
+                    log('  경로: api-gateway → bff-service → data-worker (DB_TIMEOUT=1초 버그)');
+                    const results = await callAPI('/aggregate', 10);
+                    const err504 = results.filter(r => r.status === 504).length;
+                    const err502 = results.filter(r => r.status === 502).length;
+                    const ok = results.filter(r => r.status === 200).length;
+                    results.forEach((r, i) => log(`  [${i+1}] HTTP ${r.status}`));
+                    log(`📊 결과: 200 OK ${ok} / 504 Timeout ${err504} / 502 Error ${err502}`);
+                    if (err504 + err502 > 0) {
+                        log('🚨 <span style="color:#ef4444">에러 다수 발생 → alert 발화 예상 → 에이전트 자동 분석 시작</span>');
                     }
                     break;
+                }
 
-                case 'batch-oom':
-                    log('🚀 <b>[Batch OOM]</b> data-worker /process/batch 호출...');
-                    const r2 = await callEndpoint('data-worker', '/process/batch', 3);
-                    r2.forEach((r, i) => log(`  [${i+1}] HTTP ${r.status}: ${r.body}`));
-                    log('💥 BATCH_SIZE=10000으로 메모리 폭증 → OOMKilled 대기 중...');
+                case 'batch-oom': {
+                    log('🚀 <b>[Batch OOM]</b> gateway → bff → data-worker /process (BATCH_SIZE=10000)...');
+                    log('  대량 배치 처리로 메모리 폭증 → OOMKilled 예상');
+                    const results = await callAPI('/aggregate', 5);
+                    results.forEach((r, i) => log(`  [${i+1}] HTTP ${r.status}: ${r.body.substring(0, 100)}`));
+                    log('💥 data-worker 메모리 사용량 급증 중... OOMKilled 대기');
                     break;
+                }
 
-                case 'wrong-port':
-                    log('🚀 <b>[Wrong Port]</b> bff-service /api/aggregate 5회 호출...');
-                    const r3 = await callEndpoint('bff-service', '/api/aggregate', 5);
-                    const errors502 = r3.filter(r => r.status === 502).length;
-                    r3.forEach((r, i) => log(`  [${i+1}] HTTP ${r.status}`));
-                    if (errors502 > 0) {
-                        log(`🚨 <span style="color:#ef4444">502 에러 ${errors502}회 - DATA_WORKER_PORT=9999 연결 실패</span>`);
+                case 'wrong-port': {
+                    log('🚀 <b>[Wrong Port]</b> gateway → bff → data-worker:9999 (잘못된 포트)...');
+                    log('  bff-service config.js에서 DATA_WORKER_PORT=9999 설정됨');
+                    const results = await callAPI('/aggregate', 5);
+                    const err502 = results.filter(r => r.status === 502).length;
+                    results.forEach((r, i) => log(`  [${i+1}] HTTP ${r.status}: ${r.body.substring(0, 100)}`));
+                    if (err502 > 0) {
+                        log(`🚨 <span style="color:#ef4444">502 에러 ${err502}회 - 잘못된 포트로 연결 실패</span>`);
                     }
                     break;
+                }
 
-                case 'upstream-timeout':
-                    log('🚀 <b>[Upstream Timeout]</b> bff-service /api/aggregate 5회 호출...');
-                    const r4 = await callEndpoint('bff-service', '/api/aggregate', 5);
-                    const timeouts2 = r4.filter(r => r.status === 504).length;
-                    r4.forEach((r, i) => log(`  [${i+1}] HTTP ${r.status}`));
-                    if (timeouts2 > 0) {
-                        log(`🚨 <span style="color:#ef4444">504 Timeout ${timeouts2}회 - UPSTREAM_TIMEOUT=500ms 초과</span>`);
+                case 'upstream-timeout': {
+                    log('🚀 <b>[Upstream Timeout]</b> gateway → bff (UPSTREAM_TIMEOUT=500ms)...');
+                    log('  bff-service가 500ms 안에 응답 못 받으면 504');
+                    const results = await callAPI('/aggregate', 5);
+                    const err504 = results.filter(r => r.status === 504).length;
+                    results.forEach((r, i) => log(`  [${i+1}] HTTP ${r.status}`));
+                    if (err504 > 0) {
+                        log(`🚨 <span style="color:#ef4444">504 Timeout ${err504}회 - UPSTREAM_TIMEOUT 초과</span>`);
                     }
                     break;
+                }
 
-                case 'proxy-timeout':
-                    log('🚀 <b>[Proxy Timeout]</b> api-gateway → data-worker 프록시 5회 호출...');
-                    const r5 = await callEndpoint('api-gateway', '/api/data-worker/process', 5);
-                    r5.forEach((r, i) => log(`  [${i+1}] HTTP ${r.status}`));
-                    log('⏱️ ProxyTimeout=1초 때문에 upstream 응답 전에 timeout 발생');
-                    break;
-
-                case 'pool-exhaustion':
-                    log('🚀 <b>[Pool Exhaustion]</b> core-business /items 동시 5회 호출...');
-                    const r6 = await callEndpoint('core-business', '/items', 5, true);
-                    const errors500 = r6.filter(r => r.status === 500).length;
-                    r6.forEach((r, i) => log(`  [${i+1}] HTTP ${r.status}`));
-                    if (errors500 > 0) {
-                        log(`🚨 <span style="color:#ef4444">500 에러 ${errors500}회 - HikariCP pool-size=1 고갈</span>`);
+                case 'proxy-timeout': {
+                    log('🚀 <b>[Proxy Timeout]</b> gateway (ProxyTimeout=1초) → bff → downstream...');
+                    log('  api-gateway config.go ProxyTimeout=1s, 체인 응답이 1초 넘으면 502');
+                    const results = await callAPI('/aggregate', 5);
+                    const errors = results.filter(r => r.status >= 500).length;
+                    results.forEach((r, i) => log(`  [${i+1}] HTTP ${r.status}`));
+                    if (errors > 0) {
+                        log(`🚨 <span style="color:#ef4444">Gateway Timeout ${errors}회 - ProxyTimeout=1초 초과</span>`);
                     }
                     break;
+                }
+
+                case 'pool-exhaustion': {
+                    log('🚀 <b>[Pool Exhaustion]</b> gateway → bff → core-business (동시 5회)...');
+                    log('  HikariCP max-pool-size=1, 동시 요청 시 connection 대기 → timeout');
+                    const results = await callAPI('/aggregate', 5, true);
+                    const err500 = results.filter(r => r.status === 500).length;
+                    results.forEach((r, i) => log(`  [${i+1}] HTTP ${r.status}`));
+                    if (err500 > 0) {
+                        log(`🚨 <span style="color:#ef4444">500 에러 ${err500}회 - Connection pool 고갈</span>`);
+                    }
+                    break;
+                }
             }
         }
     </script>
