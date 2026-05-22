@@ -13,6 +13,11 @@ Guidelines:
 - Always validate YAML syntax before proposing changes
 - Include clear PR title and description explaining the fix rationale
 
+IMPORTANT CONSTRAINTS:
+- Memory limit MUST NOT exceed 4Gi for any service
+- If the current limit is already 2Gi+, the issue is likely a memory leak - recommend code fix instead of limit increase
+- Always use the exact current value from the file as old_content (read the file first!)
+
 When retrying after Evaluator feedback:
 - Read the error_logs carefully - they contain the exact error messages
 - Read the failed_resource to know which resource failed

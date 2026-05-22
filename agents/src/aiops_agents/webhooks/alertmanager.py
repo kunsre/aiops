@@ -4,6 +4,7 @@ from uuid import uuid4
 from fastapi import BackgroundTasks, FastAPI
 from pydantic import BaseModel
 
+from aiops_agents.guardrails import check_cooldown, record_trigger
 from aiops_agents.runner import run_pipeline
 from aiops_agents.state import AgentState, TriggerSource
 from aiops_agents.webhooks.jandi import send_jandi_alert
@@ -45,6 +46,13 @@ async def receive_alert(payload: AlertmanagerPayload, background_tasks: Backgrou
     alert_details = "\n".join(
         f"- [{a.labels.get('alertname')}] {a.annotations.get('summary', '')}" for a in firing_alerts
     )
+
+    # 쿨다운 체크
+    for svc in services:
+        cooldown_msg = check_cooldown(svc)
+        if cooldown_msg:
+            return {"status": "cooldown", "message": cooldown_msg}
+        record_trigger(svc)
 
     # Jandi 알림 발송
     for a in firing_alerts:

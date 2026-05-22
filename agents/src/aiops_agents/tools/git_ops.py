@@ -1,11 +1,14 @@
-import os
-import subprocess
-import tempfile
+import base64
+import time
 
 import httpx
 from langchain_core.tools import tool
 
 from aiops_agents.config import GITHUB_REPO, GITHUB_TOKEN
+
+
+def _headers():
+    return {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
 
 
 @tool
@@ -19,7 +22,7 @@ def get_file_content(file_path: str, branch: str = "main") -> str:
     Returns:
         File content as string.
     """
-    headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3.raw"}
+    headers = {**_headers(), "Accept": "application/vnd.github.v3.raw"}
     response = httpx.get(
         f"https://api.github.com/repos/{GITHUB_REPO}/contents/{file_path}",
         headers=headers,
@@ -34,18 +37,20 @@ def get_file_content(file_path: str, branch: str = "main") -> str:
 def patch_file(file_path: str, old_content: str, new_content: str, branch: str = "main") -> str:
     """Patch a specific section of a file in the repository by replacing old content with new.
 
+    Always creates a fresh branch from latest main to avoid merge conflicts.
+
     Args:
         file_path: Path to the file in the repository
         old_content: Exact string to find and replace
         new_content: Replacement string
-        branch: Branch to create the commit on (will create new branch from this)
+        branch: Base branch to create fix from (always reads latest)
 
     Returns:
         Status message with the new branch name.
     """
-    headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
+    headers = _headers()
 
-    # Get current file
+    # Always get latest file from main (not a stale branch)
     resp = httpx.get(
         f"https://api.github.com/repos/{GITHUB_REPO}/contents/{file_path}",
         headers=headers,
@@ -55,8 +60,6 @@ def patch_file(file_path: str, old_content: str, new_content: str, branch: str =
     resp.raise_for_status()
     file_data = resp.json()
 
-    import base64
-
     content = base64.b64decode(file_data["content"]).decode()
     if old_content not in content:
         return f"ERROR: old_content not found in {file_path}"
@@ -64,10 +67,11 @@ def patch_file(file_path: str, old_content: str, new_content: str, branch: str =
     new_file_content = content.replace(old_content, new_content)
     encoded = base64.b64encode(new_file_content.encode()).decode()
 
-    # Create fix branch and commit
-    fix_branch = f"fix/aiops-auto-{file_path.replace('/', '-')}"
+    # Unique branch name with timestamp (prevents conflict with old branches)
+    timestamp = int(time.time())
+    fix_branch = f"fix/aiops-{timestamp}"
 
-    # Create branch
+    # Get latest main SHA
     main_ref = httpx.get(
         f"https://api.github.com/repos/{GITHUB_REPO}/git/ref/heads/{branch}",
         headers=headers,
@@ -76,6 +80,14 @@ def patch_file(file_path: str, old_content: str, new_content: str, branch: str =
     main_ref.raise_for_status()
     sha = main_ref.json()["object"]["sha"]
 
+    # Delete old branch if exists (cleanup)
+    httpx.delete(
+        f"https://api.github.com/repos/{GITHUB_REPO}/git/refs/heads/{fix_branch}",
+        headers=headers,
+        timeout=5.0,
+    )
+
+    # Create fresh branch from latest main
     httpx.post(
         f"https://api.github.com/repos/{GITHUB_REPO}/git/refs",
         headers=headers,
@@ -83,7 +95,7 @@ def patch_file(file_path: str, old_content: str, new_content: str, branch: str =
         timeout=10.0,
     )
 
-    # Update file on new branch
+    # Commit the change
     httpx.put(
         f"https://api.github.com/repos/{GITHUB_REPO}/contents/{file_path}",
         headers=headers,
@@ -112,10 +124,9 @@ def create_pull_request(title: str, body: str, head_branch: str, base_branch: st
     Returns:
         Pull request URL.
     """
-    headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
     response = httpx.post(
         f"https://api.github.com/repos/{GITHUB_REPO}/pulls",
-        headers=headers,
+        headers=_headers(),
         json={
             "title": title,
             "body": body,
