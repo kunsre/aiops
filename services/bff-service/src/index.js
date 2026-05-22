@@ -8,14 +8,30 @@ const DATA_WORKER_URL =
 const CORE_BUSINESS_URL =
   process.env.CORE_BUSINESS_URL || "http://core-business:8081";
 
+// === Fault state ===
+let errorMode = false;
+let latencyMs = 0;
+let wrongUrl = false; // simulate misconfigured upstream URL
+
+app.use(express.json());
+
 app.get("/healthz", (req, res) => {
+  if (errorMode) {
+    return res.status(503).json({ status: "error", message: "Service degraded" });
+  }
   res.json({ status: "ok", service: "bff-service" });
 });
 
 app.get("/api/aggregate", async (req, res) => {
+  if (latencyMs > 0) {
+    await new Promise((r) => setTimeout(r, latencyMs));
+  }
+
+  const dataUrl = wrongUrl ? "http://wrong-host:9999" : DATA_WORKER_URL;
+
   try {
     const [dataRes, itemsRes] = await Promise.all([
-      fetch(`${DATA_WORKER_URL}/healthz`),
+      fetch(`${dataUrl}/healthz`),
       fetch(`${CORE_BUSINESS_URL}/items`),
     ]);
 
@@ -50,6 +66,48 @@ app.get("/api/status", async (req, res) => {
   );
 
   res.json({ services: results });
+});
+
+// === Fault Injection ===
+
+app.post("/fault/error503", (req, res) => {
+  errorMode = true;
+  res.json({ status: "error_mode_enabled", message: "healthz will return 503" });
+});
+
+app.post("/fault/error503/disable", (req, res) => {
+  errorMode = false;
+  res.json({ status: "error_mode_disabled" });
+});
+
+app.post("/fault/latency/:ms", (req, res) => {
+  latencyMs = parseInt(req.params.ms);
+  res.json({ status: "latency_injected", latency_ms: latencyMs });
+});
+
+app.post("/fault/latency/disable", (req, res) => {
+  latencyMs = 0;
+  res.json({ status: "latency_removed" });
+});
+
+app.post("/fault/wrong-upstream", (req, res) => {
+  wrongUrl = true;
+  res.json({ status: "wrong_url_enabled", message: "Upstream URL set to wrong-host:9999" });
+});
+
+app.post("/fault/wrong-upstream/disable", (req, res) => {
+  wrongUrl = false;
+  res.json({ status: "wrong_url_disabled" });
+});
+
+app.post("/fault/crash", (req, res) => {
+  res.json({ status: "crashing" });
+  setTimeout(() => process.exit(1), 100);
+});
+
+app.post("/fault/unhandled", (req, res) => {
+  // Simulate unhandled exception → crash
+  throw new Error("Unhandled exception: Cannot read property 'id' of undefined");
 });
 
 app.listen(PORT, () => {
