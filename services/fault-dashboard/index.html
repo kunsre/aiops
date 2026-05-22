@@ -28,9 +28,9 @@
         }
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
             gap: 20px;
-            max-width: 1400px;
+            max-width: 1500px;
             margin: 0 auto;
         }
         .service-card {
@@ -38,9 +38,7 @@
             border: 1px solid #2d3139;
             border-radius: 12px;
             padding: 20px;
-            transition: border-color 0.2s;
         }
-        .service-card:hover { border-color: #4a5568; }
         .service-header {
             display: flex;
             align-items: center;
@@ -58,29 +56,45 @@
         }
         .service-name { font-weight: 600; font-size: 1.1rem; }
         .service-lang { color: #6b7280; font-size: 0.8rem; }
-        .fault-btn {
-            display: block;
-            width: 100%;
-            padding: 10px 14px;
-            margin-bottom: 8px;
+        .scenario {
             border: 1px solid #2d3139;
             border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
             background: #252830;
-            color: #e1e4e8;
-            font-size: 0.85rem;
-            cursor: pointer;
-            text-align: left;
-            transition: all 0.15s;
         }
-        .fault-btn:hover { background: #2d3139; border-color: #4a5568; }
-        .fault-btn.danger { border-left: 3px solid #ff6b6b; }
-        .fault-btn.warning { border-left: 3px solid #feca57; }
-        .fault-btn.info { border-left: 3px solid #48dbfb; }
-        .fault-btn.recover { border-left: 3px solid #00d68f; background: #1a2e2a; }
-        .fault-btn .label { font-weight: 500; }
-        .fault-btn .desc { color: #6b7280; font-size: 0.75rem; margin-top: 2px; }
+        .scenario-title {
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+        }
+        .scenario-desc {
+            color: #6b7280;
+            font-size: 0.75rem;
+            margin-bottom: 8px;
+        }
+        .scenario-fix {
+            color: #48dbfb;
+            font-size: 0.75rem;
+            margin-bottom: 10px;
+            font-family: monospace;
+        }
+        .btn-group { display: flex; gap: 6px; }
+        .btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .btn-trigger { background: #ef4444; color: white; }
+        .btn-trigger:hover { background: #dc2626; }
+        .btn-trigger:disabled { background: #4b5563; cursor: not-allowed; }
+        .btn-reset { background: #374151; color: #e1e4e8; }
+        .btn-reset:hover { background: #4b5563; }
         .log-panel {
-            max-width: 1400px;
+            max-width: 1500px;
             margin: 24px auto 0;
             background: #1c1f26;
             border: 1px solid #2d3139;
@@ -95,73 +109,26 @@
         }
         .log-header h3 { font-size: 0.9rem; font-weight: 500; }
         .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #00d68f;
-            animation: pulse 2s infinite;
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #00d68f; animation: pulse 2s infinite;
         }
-        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
         #log {
-            font-family: 'JetBrains Mono', 'Fira Code', monospace;
-            font-size: 0.85rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
             color: #9ca3af;
-            height: 200px;
+            height: 250px;
             overflow-y: auto;
-            white-space: pre-wrap;
-            word-break: break-all;
-            line-height: 1.6;
+            line-height: 1.7;
         }
-        #log .entry { padding: 4px 0; border-bottom: 1px solid #2d3139; }
-        #log .entry:last-child { border-bottom: none; }
-        #log .time { color: #6b7280; }
-        #log .success { color: #00d68f; }
-        #log .error { color: #ff6b6b; }
-        #log .pending { color: #feca57; }
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.7);
-            z-index: 100;
-            align-items: center;
-            justify-content: center;
-        }
-        .modal.active { display: flex; }
-        .modal-content {
-            background: #1c1f26;
-            border: 1px solid #2d3139;
-            border-radius: 12px;
-            padding: 24px;
-            max-width: 500px;
-            width: 90%;
-        }
-        .modal-content h3 { margin-bottom: 16px; }
-        .modal-content input {
-            width: 100%;
-            padding: 10px;
-            background: #252830;
-            border: 1px solid #2d3139;
-            border-radius: 6px;
-            color: #e1e4e8;
-            font-size: 1rem;
-            margin-bottom: 12px;
-        }
-        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
-        .modal-actions button {
-            padding: 8px 16px;
-            border-radius: 6px;
-            border: none;
-            cursor: pointer;
-            font-size: 0.85rem;
-        }
-        .btn-cancel { background: #374151; color: #e1e4e8; }
-        .btn-confirm { background: #ef4444; color: white; }
+        #log .entry { padding: 3px 0; border-bottom: 1px solid #1f2229; }
+        .spinner { display: inline-block; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
     <h1>AIOps Fault Injection Dashboard</h1>
-    <p class="subtitle">클릭 한 번으로 장애를 주입하고 자가복구 에이전트의 동작을 관찰하세요</p>
+    <p class="subtitle">시나리오를 실행하면 실제 트래픽이 발생하고, 에이전트가 자동으로 버그를 감지/수정합니다</p>
 
     <div class="grid">
         <!-- data-worker -->
@@ -173,61 +140,24 @@
                     <div class="service-lang">Python FastAPI</div>
                 </div>
             </div>
-            <button class="fault-btn danger" onclick="fire('data-worker', '/fault/oom', 'POST')">
-                <div class="label">💥 OOM Kill</div>
-                <div class="desc">메모리 누수 → OOMKilled → 에이전트가 limit 상향</div>
-            </button>
-            <button class="fault-btn danger" onclick="fire('data-worker', '/fault/error500', 'POST')">
-                <div class="label">🔴 HTTP 500</div>
-                <div class="desc">모든 요청 500 에러 반환 → error rate alert</div>
-            </button>
-            <button class="fault-btn warning" onclick="promptAndFire('data-worker', '/fault/latency/', 'Latency (ms)', '3000')">
-                <div class="label">🐢 Latency Injection</div>
-                <div class="desc">응답 지연 추가 → p99 latency alert</div>
-            </button>
-            <button class="fault-btn warning" onclick="fire('data-worker', '/fault/cpu', 'POST')">
-                <div class="label">🔥 CPU Burn</div>
-                <div class="desc">CPU 100% → throttling alert</div>
-            </button>
-            <button class="fault-btn danger" onclick="fire('data-worker', '/fault/crash', 'POST')">
-                <div class="label">💀 Crash</div>
-                <div class="desc">즉시 종료 → CrashLoopBackOff</div>
-            </button>
-            <button class="fault-btn recover" onclick="recover('data-worker')">
-                <div class="label">✅ 전체 복구</div>
-                <div class="desc">모든 fault 비활성화</div>
-            </button>
-        </div>
 
-        <!-- api-gateway -->
-        <div class="service-card">
-            <div class="service-header">
-                <div class="service-icon" style="background:#00add8">🔷</div>
-                <div>
-                    <div class="service-name">api-gateway</div>
-                    <div class="service-lang">Go</div>
+            <div class="scenario">
+                <div class="scenario-title">🕐 DB Query Timeout</div>
+                <div class="scenario-desc">DB_TIMEOUT=1초인데 쿼리가 2.5초 걸림 → 매번 504 Timeout</div>
+                <div class="scenario-fix">패치: config.py DB_TIMEOUT = 1 → 30</div>
+                <div class="btn-group">
+                    <button class="btn btn-trigger" onclick="runScenario('db-timeout')">실행 (10회 호출)</button>
                 </div>
             </div>
-            <button class="fault-btn danger" onclick="fire('api-gateway', '/fault/error503', 'POST')">
-                <div class="label">🔴 Gateway 503</div>
-                <div class="desc">게이트웨이 서비스 불능 → 전체 다운</div>
-            </button>
-            <button class="fault-btn warning" onclick="promptAndFire('api-gateway', '/fault/latency/', 'Latency (ms)', '2000')">
-                <div class="label">🐢 Proxy Latency</div>
-                <div class="desc">프록시 지연 → upstream timeout</div>
-            </button>
-            <button class="fault-btn warning" onclick="promptAndFire('api-gateway', '/fault/ratelimit/', 'Max RPS', '5')">
-                <div class="label">🚫 Rate Limit</div>
-                <div class="desc">요청 제한 → 429 Too Many Requests</div>
-            </button>
-            <button class="fault-btn danger" onclick="fire('api-gateway', '/fault/crash', 'POST')">
-                <div class="label">💀 Crash</div>
-                <div class="desc">프로세스 종료 → CrashLoopBackOff</div>
-            </button>
-            <button class="fault-btn recover" onclick="recover('api-gateway')">
-                <div class="label">✅ 전체 복구</div>
-                <div class="desc">모든 fault 비활성화</div>
-            </button>
+
+            <div class="scenario">
+                <div class="scenario-title">💥 Batch OOM</div>
+                <div class="scenario-desc">BATCH_SIZE=10000 → 메모리 폭증 → OOMKilled</div>
+                <div class="scenario-fix">패치: config.py BATCH_SIZE = 10000 → 100</div>
+                <div class="btn-group">
+                    <button class="btn btn-trigger" onclick="runScenario('batch-oom')">실행 (OOM 트리거)</button>
+                </div>
+            </div>
         </div>
 
         <!-- bff-service -->
@@ -239,30 +169,44 @@
                     <div class="service-lang">Node.js Express</div>
                 </div>
             </div>
-            <button class="fault-btn danger" onclick="fire('bff-service', '/fault/error503', 'POST')">
-                <div class="label">🔴 Service 503</div>
-                <div class="desc">헬스체크 실패 → readiness probe fail</div>
-            </button>
-            <button class="fault-btn warning" onclick="promptAndFire('bff-service', '/fault/latency/', 'Latency (ms)', '5000')">
-                <div class="label">🐢 Response Delay</div>
-                <div class="desc">응답 지연 → timeout cascade</div>
-            </button>
-            <button class="fault-btn danger" onclick="fire('bff-service', '/fault/wrong-upstream', 'POST')">
-                <div class="label">🔗 Wrong Upstream</div>
-                <div class="desc">잘못된 URL 설정 → 502 Bad Gateway</div>
-            </button>
-            <button class="fault-btn danger" onclick="fire('bff-service', '/fault/unhandled', 'POST')">
-                <div class="label">⚡ Unhandled Error</div>
-                <div class="desc">미처리 예외 → 프로세스 crash</div>
-            </button>
-            <button class="fault-btn danger" onclick="fire('bff-service', '/fault/crash', 'POST')">
-                <div class="label">💀 Crash</div>
-                <div class="desc">강제 종료 → CrashLoopBackOff</div>
-            </button>
-            <button class="fault-btn recover" onclick="recover('bff-service')">
-                <div class="label">✅ 전체 복구</div>
-                <div class="desc">모든 fault 비활성화</div>
-            </button>
+
+            <div class="scenario">
+                <div class="scenario-title">🔗 Wrong Upstream Port</div>
+                <div class="scenario-desc">DATA_WORKER_PORT=9999 (실제: 8000) → 연결 거부 → 502</div>
+                <div class="scenario-fix">패치: config.js DATA_WORKER_PORT = 9999 → 8000</div>
+                <div class="btn-group">
+                    <button class="btn btn-trigger" onclick="runScenario('wrong-port')">실행 (5회 호출)</button>
+                </div>
+            </div>
+
+            <div class="scenario">
+                <div class="scenario-title">⏱️ Upstream Timeout</div>
+                <div class="scenario-desc">UPSTREAM_TIMEOUT=500ms인데 응답 2초+ → 타임아웃</div>
+                <div class="scenario-fix">패치: config.js UPSTREAM_TIMEOUT = 500 → 10000</div>
+                <div class="btn-group">
+                    <button class="btn btn-trigger" onclick="runScenario('upstream-timeout')">실행 (5회 호출)</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- api-gateway -->
+        <div class="service-card">
+            <div class="service-header">
+                <div class="service-icon" style="background:#00add8">🔷</div>
+                <div>
+                    <div class="service-name">api-gateway</div>
+                    <div class="service-lang">Go</div>
+                </div>
+            </div>
+
+            <div class="scenario">
+                <div class="scenario-title">🐢 Proxy Timeout</div>
+                <div class="scenario-desc">ProxyTimeout=1초인데 upstream 응답 2초+ → Gateway Timeout</div>
+                <div class="scenario-fix">패치: config.go ProxyTimeout = 1s → 30s</div>
+                <div class="btn-group">
+                    <button class="btn btn-trigger" onclick="runScenario('proxy-timeout')">실행 (5회 호출)</button>
+                </div>
+            </div>
         </div>
 
         <!-- core-business -->
@@ -274,30 +218,15 @@
                     <div class="service-lang">Java Spring Boot</div>
                 </div>
             </div>
-            <button class="fault-btn danger" onclick="fire('core-business', '/fault/error500', 'POST')">
-                <div class="label">🔴 SQLException</div>
-                <div class="desc">DB 연결 실패 시뮬레이션 → 500 에러</div>
-            </button>
-            <button class="fault-btn warning" onclick="promptAndFire('core-business', '/fault/latency/', 'Latency (ms)', '5000')">
-                <div class="label">🐢 DB Latency</div>
-                <div class="desc">쿼리 지연 → slow query alert</div>
-            </button>
-            <button class="fault-btn danger" onclick="fire('core-business', '/fault/deadlock', 'POST')">
-                <div class="label">🔒 Deadlock</div>
-                <div class="desc">스레드 교착 → thread pool 고갈</div>
-            </button>
-            <button class="fault-btn danger" onclick="fire('core-business', '/fault/connection-leak', 'POST')">
-                <div class="label">🔌 Connection Leak</div>
-                <div class="desc">HikariCP 풀 고갈 → 연결 타임아웃</div>
-            </button>
-            <button class="fault-btn danger" onclick="fire('core-business', '/fault/crash', 'POST')">
-                <div class="label">💀 Crash</div>
-                <div class="desc">JVM 강제 종료 → CrashLoopBackOff</div>
-            </button>
-            <button class="fault-btn recover" onclick="recover('core-business')">
-                <div class="label">✅ 전체 복구</div>
-                <div class="desc">모든 fault 비활성화</div>
-            </button>
+
+            <div class="scenario">
+                <div class="scenario-title">🔌 Connection Pool Exhaustion</div>
+                <div class="scenario-desc">HikariCP max-pool-size=1 → 동시 요청 시 500 에러</div>
+                <div class="scenario-fix">패치: application.yaml maximum-pool-size = 1 → 10</div>
+                <div class="btn-group">
+                    <button class="btn btn-trigger" onclick="runScenario('pool-exhaustion')">실행 (동시 5회)</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -306,88 +235,114 @@
         <div class="log-header">
             <div class="status-dot"></div>
             <h3>Activity Log</h3>
+            <button class="btn btn-reset" style="margin-left:auto" onclick="clearLog()">Clear</button>
         </div>
-        <div id="log"><div class="entry"><span class="time">[시작]</span> Ready - 장애를 주입하면 에이전트가 자동으로 감지하고 복구합니다</div></div>
-    </div>
-
-    <!-- Modal for input -->
-    <div class="modal" id="modal">
-        <div class="modal-content">
-            <h3 id="modal-title">값 입력</h3>
-            <input type="number" id="modal-input" placeholder="값을 입력하세요">
-            <div class="modal-actions">
-                <button class="btn-cancel" onclick="closeModal()">취소</button>
-                <button class="btn-confirm" id="modal-confirm">주입</button>
-            </div>
-        </div>
+        <div id="log"></div>
     </div>
 
     <script>
-        function getServiceUrl(service) {
+        function proxy(service) {
             return `/proxy/${service}`;
         }
 
-        function log(msg, type = 'info') {
+        function log(msg) {
             const el = document.getElementById('log');
             const time = new Date().toLocaleTimeString();
-            const cls = msg.startsWith('✅') ? 'success' : msg.startsWith('❌') ? 'error' : msg.startsWith('⏳') ? 'pending' : '';
             const entry = document.createElement('div');
             entry.className = 'entry';
-            entry.innerHTML = `<span class="time">[${time}]</span> <span class="${cls}">${msg}</span>`;
+            entry.innerHTML = `<span style="color:#6b7280">[${time}]</span> ${msg}`;
             el.appendChild(entry);
             el.scrollTop = el.scrollHeight;
         }
 
-        async function fire(service, path, method = 'POST') {
-            const url = getServiceUrl(service) + path;
-            log(`⏳ ${service}: ${path} 요청 중...`);
-            try {
-                const res = await fetch(url, { method });
-                const text = await res.text();
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        async function callEndpoint(service, path, count = 1, concurrent = false) {
+            const url = proxy(service) + path;
+            const results = [];
+
+            if (concurrent) {
+                const promises = Array.from({length: count}, () =>
+                    fetch(url, {method: path.includes('/fault/') ? 'POST' : 'GET'})
+                        .then(r => r.text().then(t => ({status: r.status, body: t})))
+                        .catch(e => ({status: 0, body: e.message}))
+                );
+                const res = await Promise.all(promises);
+                return res;
+            }
+
+            for (let i = 0; i < count; i++) {
                 try {
-                    const data = JSON.parse(text);
-                    log(`✅ ${service}: ${JSON.stringify(data)}`);
-                } catch {
-                    log(`✅ ${service}: ${text.substring(0, 200)}`);
+                    const method = path.includes('/fault/') ? 'POST' : 'POST';
+                    const r = await fetch(url, {method});
+                    const text = await r.text();
+                    results.push({status: r.status, body: text.substring(0, 150)});
+                } catch (e) {
+                    results.push({status: 0, body: e.message});
                 }
-            } catch (err) {
-                log(`❌ ${service}: ${err.message}`);
             }
+            return results;
         }
 
-        function promptAndFire(service, pathPrefix, title, defaultVal) {
-            const modal = document.getElementById('modal');
-            const input = document.getElementById('modal-input');
-            const confirmBtn = document.getElementById('modal-confirm');
-            document.getElementById('modal-title').textContent = title;
-            input.value = defaultVal;
-            modal.classList.add('active');
-            input.focus();
+        async function runScenario(id) {
+            switch (id) {
+                case 'db-timeout':
+                    log('🚀 <b>[DB Timeout]</b> data-worker /process 10회 호출 시작...');
+                    const r1 = await callEndpoint('data-worker', '/process', 10);
+                    const timeouts = r1.filter(r => r.status === 504).length;
+                    const ok = r1.filter(r => r.status === 200).length;
+                    log(`📊 결과: 504 Timeout ${timeouts}회 / 200 OK ${ok}회`);
+                    if (timeouts > 0) {
+                        log('🚨 <span style="color:#ef4444">DB_TIMEOUT=1초 버그로 인한 504 다수 발생 → alert 예상</span>');
+                    }
+                    break;
 
-            confirmBtn.onclick = () => {
-                const val = input.value;
-                closeModal();
-                fire(service, pathPrefix + val, 'POST');
-            };
-            input.onkeydown = (e) => { if (e.key === 'Enter') confirmBtn.click(); };
-        }
+                case 'batch-oom':
+                    log('🚀 <b>[Batch OOM]</b> data-worker /process/batch 호출...');
+                    const r2 = await callEndpoint('data-worker', '/process/batch', 3);
+                    r2.forEach((r, i) => log(`  [${i+1}] HTTP ${r.status}: ${r.body}`));
+                    log('💥 BATCH_SIZE=10000으로 메모리 폭증 → OOMKilled 대기 중...');
+                    break;
 
-        function closeModal() {
-            document.getElementById('modal').classList.remove('active');
-        }
+                case 'wrong-port':
+                    log('🚀 <b>[Wrong Port]</b> bff-service /api/aggregate 5회 호출...');
+                    const r3 = await callEndpoint('bff-service', '/api/aggregate', 5);
+                    const errors502 = r3.filter(r => r.status === 502).length;
+                    r3.forEach((r, i) => log(`  [${i+1}] HTTP ${r.status}`));
+                    if (errors502 > 0) {
+                        log(`🚨 <span style="color:#ef4444">502 에러 ${errors502}회 - DATA_WORKER_PORT=9999 연결 실패</span>`);
+                    }
+                    break;
 
-        async function recover(service) {
-            const paths = {
-                'data-worker': ['/fault/error500/disable', '/fault/latency/disable', '/fault/cpu/disable', '/fault/disk/cleanup'],
-                'api-gateway': ['/fault/error503/disable', '/fault/latency/disable', '/fault/ratelimit/disable'],
-                'bff-service': ['/fault/error503/disable', '/fault/latency/disable', '/fault/wrong-upstream/disable'],
-                'core-business': ['/fault/error500/disable', '/fault/latency/disable'],
-            };
-            log(`🔄 ${service}: 복구 중...`);
-            for (const path of paths[service]) {
-                try { await fetch(getServiceUrl(service) + path, { method: 'POST' }); } catch {}
+                case 'upstream-timeout':
+                    log('🚀 <b>[Upstream Timeout]</b> bff-service /api/aggregate 5회 호출...');
+                    const r4 = await callEndpoint('bff-service', '/api/aggregate', 5);
+                    const timeouts2 = r4.filter(r => r.status === 504).length;
+                    r4.forEach((r, i) => log(`  [${i+1}] HTTP ${r.status}`));
+                    if (timeouts2 > 0) {
+                        log(`🚨 <span style="color:#ef4444">504 Timeout ${timeouts2}회 - UPSTREAM_TIMEOUT=500ms 초과</span>`);
+                    }
+                    break;
+
+                case 'proxy-timeout':
+                    log('🚀 <b>[Proxy Timeout]</b> api-gateway → data-worker 프록시 5회 호출...');
+                    const r5 = await callEndpoint('api-gateway', '/api/data-worker/process', 5);
+                    r5.forEach((r, i) => log(`  [${i+1}] HTTP ${r.status}`));
+                    log('⏱️ ProxyTimeout=1초 때문에 upstream 응답 전에 timeout 발생');
+                    break;
+
+                case 'pool-exhaustion':
+                    log('🚀 <b>[Pool Exhaustion]</b> core-business /items 동시 5회 호출...');
+                    const r6 = await callEndpoint('core-business', '/items', 5, true);
+                    const errors500 = r6.filter(r => r.status === 500).length;
+                    r6.forEach((r, i) => log(`  [${i+1}] HTTP ${r.status}`));
+                    if (errors500 > 0) {
+                        log(`🚨 <span style="color:#ef4444">500 에러 ${errors500}회 - HikariCP pool-size=1 고갈</span>`);
+                    }
+                    break;
             }
-            log(`✅ ${service}: 복구 완료`);
         }
     </script>
 </body>
