@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from aiops_agents.runner import run_pipeline
 from aiops_agents.state import AgentState, TriggerSource
+from aiops_agents.webhooks.jandi import send_jandi_alert
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,15 @@ async def receive_alert(payload: AlertmanagerPayload, background_tasks: Backgrou
     alert_details = "\n".join(
         f"- [{a.labels.get('alertname')}] {a.annotations.get('summary', '')}" for a in firing_alerts
     )
+
+    # Jandi 알림 발송
+    for a in firing_alerts:
+        send_jandi_alert(
+            alertname=a.labels.get("alertname", "Unknown"),
+            service=a.labels.get("service", a.labels.get("container", "unknown")),
+            summary=a.annotations.get("summary", "No summary"),
+            status=a.status,
+        )
 
     background_tasks.add_task(_run, alert_details, services)
 

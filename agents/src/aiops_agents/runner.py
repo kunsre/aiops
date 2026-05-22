@@ -14,6 +14,12 @@ from aiops_agents.state import AgentState, PipelineStatus, TriggerSource
 from aiops_agents.nodes.monitor import monitor_node
 from aiops_agents.nodes.generator import generator_node
 from aiops_agents.nodes.evaluator import evaluator_node
+from aiops_agents.webhooks.jandi import (
+    send_jandi_evaluator,
+    send_jandi_generator,
+    send_jandi_monitor,
+    send_jandi_pipeline_complete,
+)
 
 console = Console()
 
@@ -85,6 +91,13 @@ def run_pipeline(alert_content: str, target_services: list[str]):
                 monitor_lines.append(f"[dim]{content[:300]}...[/dim]")
 
     _step_panel("🔍", "MONITOR (SRE Agent)", "yellow", monitor_lines)
+
+    send_jandi_monitor(
+        service=rca.root_cause_service,
+        failure_mode=rca.failure_mode,
+        action=rca.recommended_action or "N/A",
+    )
+
     _arrow()
 
     # === GENERATOR ===
@@ -108,6 +121,15 @@ def run_pipeline(alert_content: str, target_services: list[str]):
                 gen_lines.append(f"[dim]{content[:300]}...[/dim]")
 
     _step_panel("🔧", "GENERATOR (Dev Agent)", "cyan", gen_lines)
+
+    for change in gen_result.get("proposed_changes", []):
+        if change.pull_request_url:
+            send_jandi_generator(
+                service=target_services[0],
+                pr_url=change.pull_request_url,
+                diff_summary=change.diff[:200],
+            )
+
     _arrow()
 
     # === EVALUATOR ===
@@ -138,9 +160,14 @@ def run_pipeline(alert_content: str, target_services: list[str]):
     eval_color = "green" if passed else "red"
     _step_panel("🧪", "EVALUATOR (QA Agent)", eval_color, eval_lines)
 
+    eval_detail = eval_results.error_logs[0][:200] if eval_results and eval_results.error_logs else "OK"
+    send_jandi_evaluator(service=target_services[0], passed=passed, detail=eval_detail)
+
     # === RESULT ===
     console.print()
     final_status = eval_result.get("status", PipelineStatus.FAILED)
+    send_jandi_pipeline_complete(service=target_services[0], status=final_status.value)
+
     if final_status == PipelineStatus.COMPLETED:
         console.print(Panel.fit(
             "[bold green]🎉 SELF-HEALING COMPLETE[/bold green]\n"
