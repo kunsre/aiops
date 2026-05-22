@@ -4,27 +4,13 @@ from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 
 from aiops_agents.config import get_llm
 from aiops_agents.state import AgentState, EvaluationResult, PipelineStatus
-from aiops_agents.tools.gitops import approve_and_merge_pr, get_argocd_app_status, sync_argocd_app
-from aiops_agents.tools.k8s_ops import kubectl_apply, kubectl_describe_pod, kubectl_get_pod_logs
-from aiops_agents.tools.test_runner import run_health_check, run_load_test, trigger_test_pipeline
+from aiops_agents.tools import EVALUATOR_TOOLS
 
 SYSTEM_PROMPT = Path(__file__).parent.parent.joinpath("prompts", "evaluator.md").read_text()
 
-EVALUATOR_TOOLS = [
-    kubectl_apply,
-    kubectl_get_pod_logs,
-    kubectl_describe_pod,
-    trigger_test_pipeline,
-    run_health_check,
-    run_load_test,
-    approve_and_merge_pr,
-    sync_argocd_app,
-    get_argocd_app_status,
-]
-
 
 def evaluator_node(state: AgentState) -> dict:
-    """Run sandbox tests, evaluate results, approve or request retry."""
+    """Deploy, test, and validate changes with comprehensive diagnostics on failure."""
     llm = get_llm().bind_tools(EVALUATOR_TOOLS)
 
     messages = [
@@ -32,8 +18,9 @@ def evaluator_node(state: AgentState) -> dict:
         HumanMessage(content=_build_eval_prompt(state)),
     ]
 
-    # Agent loop
-    for _ in range(15):
+    tool_map = {t.name: t for t in EVALUATOR_TOOLS}
+
+    for _ in range(20):
         response = llm.invoke(messages)
         messages.append(response)
 
@@ -41,11 +28,10 @@ def evaluator_node(state: AgentState) -> dict:
             break
 
         for tc in response.tool_calls:
-            tool_fn = _get_tool(tc["name"])
+            tool_fn = tool_map[tc["name"]]
             result = tool_fn.invoke(tc["args"])
             messages.append(ToolMessage(content=str(result), tool_call_id=tc["id"]))
 
-    # Parse evaluation result from LLM response
     eval_result = _parse_evaluation(response.content, state)
 
     new_status = PipelineStatus.COMPLETED if eval_result.is_passed else PipelineStatus.RETRYING
@@ -71,19 +57,19 @@ def _build_eval_prompt(state: AgentState) -> str:
                 parts.append(f"    PR: {change.pull_request_url}")
 
     parts.append(
-        "\nPlease deploy to sandbox, run tests, and report whether the fix works. "
-        "If it fails, collect ALL error details (pod logs, describe events, etc)."
+        "\nYou have full access to: kubectl (apply, logs, describe, events, exec, top, scale, restart), "
+        "health checks, load testing, ArgoCD sync, and PR merge.\n\n"
+        "Deploy to sandbox, run comprehensive tests. On FAILURE:\n"
+        "- Capture pod stderr (kubectl logs --previous)\n"
+        "- Capture pod events (kubectl describe)\n"
+        "- Run kubectl exec for in-container diagnostics if needed\n"
+        "- Check node-level resources (kubectl top)\n"
+        "- Report ALL error details without truncation"
     )
     return "\n".join(parts)
 
 
-def _get_tool(name: str):
-    tool_map = {t.name: t for t in EVALUATOR_TOOLS}
-    return tool_map[name]
-
-
 def _parse_evaluation(content: str, state: AgentState) -> EvaluationResult:
-    # Simple heuristic - in production, use structured output
     content_lower = content.lower()
     is_passed = "pass" in content_lower and "fail" not in content_lower
 
@@ -92,7 +78,7 @@ def _parse_evaluation(content: str, state: AgentState) -> EvaluationResult:
 
     return EvaluationResult(
         is_passed=False,
-        error_logs=[content[:2000]],
+        error_logs=[content[:4000]],
         failed_resource=state.target_services[0] if state.target_services else None,
         failure_phase="HEALTH_CHECK",
         suggested_fix_hint=None,

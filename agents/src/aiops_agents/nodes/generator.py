@@ -4,15 +4,13 @@ from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 
 from aiops_agents.config import get_llm
 from aiops_agents.state import AgentState, PipelineStatus, ProposedChange
-from aiops_agents.tools.git_ops import create_pull_request, get_file_content, patch_file
+from aiops_agents.tools import GENERATOR_TOOLS
 
 SYSTEM_PROMPT = Path(__file__).parent.parent.joinpath("prompts", "generator.md").read_text()
 
-GENERATOR_TOOLS = [get_file_content, patch_file, create_pull_request]
-
 
 def generator_node(state: AgentState) -> dict:
-    """Generate hotfix code or new features, create PRs."""
+    """Generate fixes using source code analysis, patching, and PR creation."""
     llm = get_llm().bind_tools(GENERATOR_TOOLS)
 
     messages = [
@@ -20,10 +18,10 @@ def generator_node(state: AgentState) -> dict:
         HumanMessage(content=_build_generation_prompt(state)),
     ]
 
+    tool_map = {t.name: t for t in GENERATOR_TOOLS}
     proposed_changes: list[ProposedChange] = list(state.proposed_changes)
 
-    # Agent loop
-    for _ in range(15):
+    for _ in range(20):
         response = llm.invoke(messages)
         messages.append(response)
 
@@ -31,11 +29,10 @@ def generator_node(state: AgentState) -> dict:
             break
 
         for tc in response.tool_calls:
-            tool_fn = _get_tool(tc["name"])
+            tool_fn = tool_map[tc["name"]]
             result = tool_fn.invoke(tc["args"])
             messages.append(ToolMessage(content=str(result), tool_call_id=tc["id"]))
 
-            # Track PR creation
             if tc["name"] == "create_pull_request" and "github.com" in str(result):
                 proposed_changes.append(
                     ProposedChange(
@@ -64,17 +61,16 @@ def _build_generation_prompt(state: AgentState) -> str:
         parts.append(f"  Recommended action: {state.rca_report.recommended_action}")
 
     if state.evaluation_results and not state.evaluation_results.is_passed:
-        parts.append(f"\n⚠️ RETRY #{state.retry_count} - Previous attempt failed:")
+        parts.append(f"\n⚠️  RETRY #{state.retry_count} - Previous attempt failed:")
         parts.append(f"  Failed resource: {state.evaluation_results.failed_resource}")
         parts.append(f"  Failure phase: {state.evaluation_results.failure_phase}")
         parts.append(f"  Error logs:\n" + "\n".join(f"    {log}" for log in state.evaluation_results.error_logs))
         if state.evaluation_results.suggested_fix_hint:
             parts.append(f"  Suggested fix: {state.evaluation_results.suggested_fix_hint}")
 
-    parts.append("\nPlease implement the fix and create a PR.")
+    parts.append(
+        "\nYou have access to: source code reader, directory listing, code search, git history, "
+        "file patching, kubectl dry-run validation, and PR creation. "
+        "Use them to understand the problem, implement a fix, validate it, and open a PR."
+    )
     return "\n".join(parts)
-
-
-def _get_tool(name: str):
-    tool_map = {t.name: t for t in GENERATOR_TOOLS}
-    return tool_map[name]

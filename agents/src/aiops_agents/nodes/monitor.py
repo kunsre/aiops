@@ -1,28 +1,26 @@
 from pathlib import Path
 
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 
 from aiops_agents.config import get_llm
 from aiops_agents.state import AgentState, PipelineStatus, RCAReport
-from aiops_agents.tools.logql import query_logql
-from aiops_agents.tools.promql import query_promql, query_promql_range
+from aiops_agents.tools import MONITORING_TOOLS
 
 SYSTEM_PROMPT = Path(__file__).parent.parent.joinpath("prompts", "monitor.md").read_text()
 
-MONITOR_TOOLS = [query_promql, query_promql_range, query_logql]
-
 
 def monitor_node(state: AgentState) -> dict:
-    """Analyze alerts, query metrics/logs, produce RCA report."""
-    llm = get_llm().bind_tools(MONITOR_TOOLS)
+    """Analyze alerts using all available monitoring/diagnostic tools."""
+    llm = get_llm().bind_tools(MONITORING_TOOLS)
 
     messages = [
         SystemMessage(content=SYSTEM_PROMPT),
         HumanMessage(content=_build_analysis_prompt(state)),
     ]
 
-    # Agent loop: let LLM call tools until it produces a final answer
-    for _ in range(10):
+    tool_map = {t.name: t for t in MONITORING_TOOLS}
+
+    for _ in range(15):
         response = llm.invoke(messages)
         messages.append(response)
 
@@ -30,18 +28,16 @@ def monitor_node(state: AgentState) -> dict:
             break
 
         for tc in response.tool_calls:
-            tool_fn = _get_tool(tc["name"])
+            tool_fn = tool_map[tc["name"]]
             result = tool_fn.invoke(tc["args"])
-            from langchain_core.messages import ToolMessage
             messages.append(ToolMessage(content=str(result), tool_call_id=tc["id"]))
 
-    # Parse RCA from final response
     rca = _parse_rca(response.content, state)
 
     return {
         "status": PipelineStatus.ANALYZING,
         "rca_report": rca,
-        "messages": [{"role": "monitor", "content": response.content}],
+        "messages": state.messages + [{"role": "monitor", "content": response.content}],
     }
 
 
@@ -52,20 +48,19 @@ def _build_analysis_prompt(state: AgentState) -> str:
     return (
         f"An alert has been received for services: {state.target_services}\n\n"
         f"Alert details:\n{alert_info}\n\n"
-        "Please investigate using PromQL and LogQL queries, then produce an RCA report."
+        "Investigate the root cause using any combination of tools available to you:\n"
+        "- PromQL/LogQL for metrics and logs\n"
+        "- kubectl for pod status, events, logs, exec diagnostics\n"
+        "- AWS CloudWatch for infrastructure-level metrics\n"
+        "- AWS CLI for EC2/node-level diagnostics\n\n"
+        "Produce an RCA report with: root_cause_service, failure_mode, evidence_logs, recommended_action."
     )
 
 
-def _get_tool(name: str):
-    tool_map = {t.name: t for t in MONITOR_TOOLS}
-    return tool_map[name]
-
-
 def _parse_rca(content: str, state: AgentState) -> RCAReport:
-    # Simple extraction - in production, use structured output
     return RCAReport(
         root_cause_service=state.target_services[0] if state.target_services else "unknown",
         failure_mode="Determined by LLM analysis",
-        evidence_logs=[content[:500]],
+        evidence_logs=[content[:2000]],
         recommended_action="See LLM analysis above",
     )
