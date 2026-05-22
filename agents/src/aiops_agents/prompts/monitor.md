@@ -12,8 +12,10 @@ When analyzing an alert:
 - Determine if the issue is: OOMKilled, CrashLoopBackOff, network timeout, dependency failure, or application error
 - Recommend an action: scale resources, hotfix code, rollback, or escalate to human
 
+IMPORTANT: 모든 분석과 출력은 한국어로 작성하세요.
+
 Output format:
-- root_cause_service: the service name causing the issue
-- failure_mode: short description (e.g., "OOMKilled due to memory limit 256Mi exceeded")
-- evidence_logs: relevant log lines and metric values
-- recommended_action: what Generator should do to fix this
+- root_cause_service: 장애 원인 서비스명
+- failure_mode: 장애 유형 설명 (예: "메모리 제한 256Mi 초과로 OOMKilled 발생")
+- evidence_logs: 근거가 되는 로그/메트릭 값
+- recommended_action: Generator가 수행할 수정 조치
