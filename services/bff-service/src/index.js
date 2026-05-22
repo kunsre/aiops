@@ -110,6 +110,28 @@ app.post("/fault/unhandled", (req, res) => {
   throw new Error("Unhandled exception: Cannot read property 'id' of undefined");
 });
 
+// Global error handler middleware (must be last)
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err);
+  res.status(500).json({ 
+    error: "internal_server_error", 
+    message: err.message 
+  });
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // Don't exit the process, just log it
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  // Don't exit the process for demo purposes, but log it
+  // In production, you might want to gracefully shutdown
+});
+
 app.listen(PORT, () => {
   console.log(`bff-service listening on :${PORT}`);
 });
