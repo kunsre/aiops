@@ -10,7 +10,7 @@ SYSTEM_PROMPT = Path(__file__).parent.parent.joinpath("prompts", "evaluator.md")
 
 
 def evaluator_node(state: AgentState) -> dict:
-    """Deploy, test, and validate changes with comprehensive diagnostics on failure."""
+    """Validate changes via GitOps deployment + read-only diagnostics."""
     llm = get_llm().bind_tools(EVALUATOR_TOOLS)
 
     messages = [
@@ -57,14 +57,19 @@ def _build_eval_prompt(state: AgentState) -> str:
                 parts.append(f"    PR: {change.pull_request_url}")
 
     parts.append(
-        "\nYou have full access to: kubectl (apply, logs, describe, events, exec, top, scale, restart), "
-        "health checks, load testing, ArgoCD sync, and PR merge.\n\n"
-        "Deploy to sandbox, run comprehensive tests. On FAILURE:\n"
-        "- Capture pod stderr (kubectl logs --previous)\n"
-        "- Capture pod events (kubectl describe)\n"
-        "- Run kubectl exec for in-container diagnostics if needed\n"
-        "- Check node-level resources (kubectl top)\n"
-        "- Report ALL error details without truncation"
+        "\nYour workflow:\n"
+        "1. Merge the PR (approve_and_merge_pr)\n"
+        "2. Trigger ArgoCD sync (sync_argocd_app)\n"
+        "3. Poll ArgoCD status until Synced+Healthy or Failed (get_argocd_app_status)\n"
+        "4. Run health check against the service endpoint\n"
+        "5. Run load test to verify stability\n\n"
+        "On FAILURE - collect diagnostics (read-only):\n"
+        "- kubectl logs (pod stderr, previous container)\n"
+        "- kubectl describe (pod events, scheduling issues)\n"
+        "- kubectl get events (namespace-level events)\n"
+        "- kubectl top (resource pressure)\n\n"
+        "Report ALL error details. You cannot apply manifests or exec into pods.\n"
+        "All deployments happen through ArgoCD only."
     )
     return "\n".join(parts)
 

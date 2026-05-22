@@ -3,15 +3,10 @@
 from aiops_agents.tools.git_ops import create_pull_request, get_file_content, patch_file
 from aiops_agents.tools.gitops import approve_and_merge_pr, get_argocd_app_status, sync_argocd_app
 from aiops_agents.tools.k8s_ops import (
-    kubectl_apply,
     kubectl_describe,
-    kubectl_exec,
     kubectl_get,
-    kubectl_get_configmap,
     kubectl_get_events,
     kubectl_get_pod_logs,
-    kubectl_rollout_restart,
-    kubectl_scale,
     kubectl_top,
 )
 from aiops_agents.tools.logql import query_logql
@@ -19,7 +14,7 @@ from aiops_agents.tools.promql import query_promql, query_promql_range
 from aiops_agents.tools.source_code import get_recent_commits, list_directory, read_source_file, search_code
 from aiops_agents.tools.test_runner import run_health_check, run_load_test, trigger_test_pipeline
 
-# Monitor: 관측 평면만 (모니터링 스택을 통해서만 분석)
+# Monitor: 관측 평면만 (모니터링 스택 경유)
 MONITORING_TOOLS = [
     query_promql,
     query_promql_range,
@@ -35,21 +30,18 @@ GENERATOR_TOOLS = [
     get_file_content,
     patch_file,
     create_pull_request,
-    kubectl_apply,  # dry-run 검증용
 ]
 
-# Evaluator: 배포 + 검증 + 제어
+# Evaluator: Read-Only 진단 + GitOps 배포 + 검증
+# - 읽기만: logs, describe, get, events, top
+# - 배포: PR merge → ArgoCD sync (직접 apply 없음)
+# - 검증: health check, load test
 EVALUATOR_TOOLS = [
-    kubectl_apply,
     kubectl_get_pod_logs,
     kubectl_describe,
     kubectl_get,
     kubectl_get_events,
-    kubectl_exec,
     kubectl_top,
-    kubectl_get_configmap,
-    kubectl_rollout_restart,
-    kubectl_scale,
     trigger_test_pipeline,
     run_health_check,
     run_load_test,
