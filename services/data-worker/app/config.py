@@ -1,7 +1,7 @@
 """data-worker configuration."""
 
-DB_TIMEOUT = 30
-MAX_RETRIES = 3
+DB_TIMEOUT = 1
+MAX_RETRIES = 0
 BATCH_SIZE = 100
 WORKER_CONCURRENCY = 4
 LOG_LEVEL = "INFO"
