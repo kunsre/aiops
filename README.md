@@ -128,6 +128,19 @@ kubectl --context kind-aiops create secret generic aiops-secrets -n aiops \
   --from-literal=GITHUB_TOKEN="ghp_your-token"
 ```
 
+## Timeout Budgeting (프로덕션 권장 설계)
+
+```
+Client Request (30s)
+  └─► api-gateway ProxyTimeout: 10s
+        └─► bff-service UPSTREAM_TIMEOUT: 5s
+              ├─► data-worker DB_TIMEOUT: 3s
+              └─► core-business HikariCP connection-timeout: 2.5s
+```
+
+현재 데모에서는 의도적으로 비정상 값을 설정하여 장애를 유발합니다.
+에이전트가 이 버그들을 감지하고 정상값으로 패치하는 것이 자가복구 시나리오입니다.
+
 ## 가드레일 (Safety)
 
 - **토큰 예산**: 파이프라인당 LLM 호출 최대 30회 → 초과 시 강제 종료
