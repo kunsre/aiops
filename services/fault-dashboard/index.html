@@ -26,76 +26,66 @@
             margin-bottom: 32px;
             font-size: 0.9rem;
         }
-        .grid {
+        .scenarios {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 20px;
-            max-width: 1500px;
-            margin: 0 auto;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            max-width: 1200px;
+            margin: 0 auto 24px;
         }
-        .service-card {
+        .scenario-card {
             background: #1c1f26;
             border: 1px solid #2d3139;
             border-radius: 12px;
-            padding: 20px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
         }
-        .service-header {
+        .scenario-card:hover { border-color: #4a5568; transform: translateY(-2px); }
+        .scenario-card.active { border-color: #ef4444; box-shadow: 0 0 20px rgba(239,68,68,0.2); }
+        .scenario-card.healthy { border-color: #00d68f; }
+        .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .card-icon { font-size: 1.5rem; }
+        .card-title { font-weight: 600; font-size: 0.95rem; }
+        .card-service { color: #6b7280; font-size: 0.75rem; }
+        .card-desc { color: #9ca3af; font-size: 0.8rem; margin-bottom: 10px; }
+        .card-bug { font-family: monospace; font-size: 0.75rem; color: #ef4444; background: #1a1a2e; padding: 6px 8px; border-radius: 4px; }
+        .card-fix { font-family: monospace; font-size: 0.75rem; color: #00d68f; background: #1a2e1a; padding: 6px 8px; border-radius: 4px; margin-top: 4px; }
+        .controls {
+            max-width: 1200px;
+            margin: 0 auto 24px;
             display: flex;
+            gap: 12px;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 16px;
         }
-        .service-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-        }
-        .service-name { font-weight: 600; font-size: 1.1rem; }
-        .service-lang { color: #6b7280; font-size: 0.8rem; }
-        .scenario {
-            border: 1px solid #2d3139;
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 10px;
-            background: #252830;
-        }
-        .scenario-title {
-            font-weight: 500;
-            font-size: 0.9rem;
-            margin-bottom: 4px;
-        }
-        .scenario-desc {
-            color: #6b7280;
-            font-size: 0.75rem;
-            margin-bottom: 8px;
-        }
-        .scenario-fix {
-            color: #48dbfb;
-            font-size: 0.75rem;
-            margin-bottom: 10px;
-            font-family: monospace;
-        }
-        .btn-group { display: flex; gap: 6px; }
         .btn {
-            padding: 6px 12px;
-            border-radius: 6px;
+            padding: 10px 20px;
+            border-radius: 8px;
             border: none;
             cursor: pointer;
-            font-size: 0.8rem;
-            font-weight: 500;
+            font-size: 0.85rem;
+            font-weight: 600;
         }
-        .btn-trigger { background: #ef4444; color: white; }
-        .btn-trigger:hover { background: #dc2626; }
-        .btn-trigger:disabled { background: #4b5563; cursor: not-allowed; }
-        .btn-reset { background: #374151; color: #e1e4e8; }
-        .btn-reset:hover { background: #4b5563; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-inject { background: #ef4444; color: white; }
+        .btn-inject:hover:not(:disabled) { background: #dc2626; }
+        .btn-restore { background: #00d68f; color: #0f1117; }
+        .btn-restore:hover:not(:disabled) { background: #00b876; }
+        .btn-traffic { background: #3b82f6; color: white; }
+        .btn-traffic:hover:not(:disabled) { background: #2563eb; }
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-left: auto;
+        }
+        .status-healthy { background: #1a2e1a; color: #00d68f; }
+        .status-faulty { background: #2e1a1a; color: #ef4444; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.7; } }
         .log-panel {
-            max-width: 1500px;
-            margin: 24px auto 0;
+            max-width: 1200px;
+            margin: 0 auto;
             background: #1c1f26;
             border: 1px solid #2d3139;
             border-radius: 12px;
@@ -107,143 +97,135 @@
             gap: 8px;
             margin-bottom: 12px;
         }
-        .log-header h3 { font-size: 0.9rem; font-weight: 500; }
-        .status-dot {
-            width: 8px; height: 8px; border-radius: 50%;
-            background: #00d68f; animation: pulse 2s infinite;
-        }
-        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+        .log-header h3 { font-size: 0.9rem; }
         #log {
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.82rem;
             color: #9ca3af;
-            height: 250px;
+            height: 280px;
             overflow-y: auto;
             line-height: 1.7;
         }
         #log .entry { padding: 3px 0; border-bottom: 1px solid #1f2229; }
-        .spinner { display: inline-block; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
     <h1>AIOps Fault Injection Dashboard</h1>
-    <p class="subtitle">시나리오를 실행하면 실제 트래픽이 발생하고, 에이전트가 자동으로 버그를 감지/수정합니다</p>
+    <p class="subtitle">시나리오를 선택하고 "장애 주입"을 클릭하면, ArgoCD가 버그 브랜치를 배포합니다</p>
 
-    <div class="grid">
-        <!-- data-worker -->
-        <div class="service-card">
-            <div class="service-header">
-                <div class="service-icon" style="background:#3b82f6">🐍</div>
+    <div class="controls">
+        <button class="btn btn-inject" id="btnInject" onclick="injectFault()" disabled>장애 주입</button>
+        <button class="btn btn-traffic" id="btnTraffic" onclick="generateTraffic()" disabled>트래픽 발생</button>
+        <button class="btn btn-restore" id="btnRestore" onclick="restoreHealthy()">정상 복구 (main)</button>
+        <span class="status-badge status-healthy" id="statusBadge">HEALTHY</span>
+    </div>
+
+    <div class="scenarios">
+        <div class="scenario-card" onclick="selectScenario('db-timeout')" id="card-db-timeout">
+            <div class="card-header">
+                <span class="card-icon">🕐</span>
                 <div>
-                    <div class="service-name">data-worker</div>
-                    <div class="service-lang">Python FastAPI</div>
+                    <div class="card-title">DB Query Timeout</div>
+                    <div class="card-service">data-worker (Python)</div>
                 </div>
             </div>
-
-            <div class="scenario">
-                <div class="scenario-title">🕐 DB Query Timeout</div>
-                <div class="scenario-desc">DB_TIMEOUT=1초인데 쿼리가 2.5초 걸림 → 매번 504 Timeout</div>
-                <div class="scenario-fix">패치: config.py DB_TIMEOUT = 1 → 30</div>
-                <div class="btn-group">
-                    <button class="btn btn-trigger" onclick="runScenario('db-timeout')">실행 (10회 호출)</button>
-                </div>
-            </div>
-
-            <div class="scenario">
-                <div class="scenario-title">💥 Batch OOM</div>
-                <div class="scenario-desc">BATCH_SIZE=10000 → 메모리 폭증 → OOMKilled</div>
-                <div class="scenario-fix">패치: config.py BATCH_SIZE = 10000 → 100</div>
-                <div class="btn-group">
-                    <button class="btn btn-trigger" onclick="runScenario('batch-oom')">실행 (OOM 트리거)</button>
-                </div>
-            </div>
+            <div class="card-desc">DB 쿼리 2.5초 소요, 타임아웃 1초 → 항상 504</div>
+            <div class="card-bug">DB_TIMEOUT = 1, MAX_RETRIES = 0</div>
+            <div class="card-fix">패치: DB_TIMEOUT = 30, MAX_RETRIES = 3</div>
         </div>
 
-        <!-- bff-service -->
-        <div class="service-card">
-            <div class="service-header">
-                <div class="service-icon" style="background:#68a063">🟢</div>
+        <div class="scenario-card" onclick="selectScenario('batch-oom')" id="card-batch-oom">
+            <div class="card-header">
+                <span class="card-icon">💥</span>
                 <div>
-                    <div class="service-name">bff-service</div>
-                    <div class="service-lang">Node.js Express</div>
+                    <div class="card-title">Batch OOM Kill</div>
+                    <div class="card-service">data-worker (Python)</div>
                 </div>
             </div>
-
-            <div class="scenario">
-                <div class="scenario-title">🔗 Wrong Upstream Port</div>
-                <div class="scenario-desc">DATA_WORKER_PORT=9999 (실제: 8000) → 연결 거부 → 502</div>
-                <div class="scenario-fix">패치: config.js DATA_WORKER_PORT = 9999 → 8000</div>
-                <div class="btn-group">
-                    <button class="btn btn-trigger" onclick="runScenario('wrong-port')">실행 (5회 호출)</button>
-                </div>
-            </div>
-
-            <div class="scenario">
-                <div class="scenario-title">⏱️ Upstream Timeout</div>
-                <div class="scenario-desc">UPSTREAM_TIMEOUT=500ms인데 응답 2초+ → 타임아웃</div>
-                <div class="scenario-fix">패치: config.js UPSTREAM_TIMEOUT = 500 → 10000</div>
-                <div class="btn-group">
-                    <button class="btn btn-trigger" onclick="runScenario('upstream-timeout')">실행 (5회 호출)</button>
-                </div>
-            </div>
+            <div class="card-desc">배치 크기 10000 → 메모리 폭증 → OOMKilled</div>
+            <div class="card-bug">BATCH_SIZE = 10000</div>
+            <div class="card-fix">패치: BATCH_SIZE = 100</div>
         </div>
 
-        <!-- api-gateway -->
-        <div class="service-card">
-            <div class="service-header">
-                <div class="service-icon" style="background:#00add8">🔷</div>
+        <div class="scenario-card" onclick="selectScenario('wrong-port')" id="card-wrong-port">
+            <div class="card-header">
+                <span class="card-icon">🔗</span>
                 <div>
-                    <div class="service-name">api-gateway</div>
-                    <div class="service-lang">Go</div>
+                    <div class="card-title">Wrong Upstream Port</div>
+                    <div class="card-service">bff-service (Node.js)</div>
                 </div>
             </div>
-
-            <div class="scenario">
-                <div class="scenario-title">🐢 Proxy Timeout</div>
-                <div class="scenario-desc">ProxyTimeout=1초인데 upstream 응답 2초+ → Gateway Timeout</div>
-                <div class="scenario-fix">패치: config.go ProxyTimeout = 1s → 30s</div>
-                <div class="btn-group">
-                    <button class="btn btn-trigger" onclick="runScenario('proxy-timeout')">실행 (5회 호출)</button>
-                </div>
-            </div>
+            <div class="card-desc">data-worker 포트 9999 (실제: 8000) → 연결 거부</div>
+            <div class="card-bug">DATA_WORKER_PORT = 9999</div>
+            <div class="card-fix">패치: DATA_WORKER_PORT = 8000</div>
         </div>
 
-        <!-- core-business -->
-        <div class="service-card">
-            <div class="service-header">
-                <div class="service-icon" style="background:#f89820">☕</div>
+        <div class="scenario-card" onclick="selectScenario('upstream-timeout')" id="card-upstream-timeout">
+            <div class="card-header">
+                <span class="card-icon">⏱️</span>
                 <div>
-                    <div class="service-name">core-business</div>
-                    <div class="service-lang">Java Spring Boot</div>
+                    <div class="card-title">Upstream Timeout</div>
+                    <div class="card-service">bff-service (Node.js)</div>
                 </div>
             </div>
+            <div class="card-desc">BFF timeout 500ms, 실제 응답 2초+ → 504</div>
+            <div class="card-bug">UPSTREAM_TIMEOUT = 500</div>
+            <div class="card-fix">패치: UPSTREAM_TIMEOUT = 10000</div>
+        </div>
 
-            <div class="scenario">
-                <div class="scenario-title">🔌 Connection Pool Exhaustion</div>
-                <div class="scenario-desc">HikariCP max-pool-size=1 → 동시 요청 시 500 에러</div>
-                <div class="scenario-fix">패치: application.yaml maximum-pool-size = 1 → 10</div>
-                <div class="btn-group">
-                    <button class="btn btn-trigger" onclick="runScenario('pool-exhaustion')">실행 (동시 5회)</button>
+        <div class="scenario-card" onclick="selectScenario('proxy-timeout')" id="card-proxy-timeout">
+            <div class="card-header">
+                <span class="card-icon">🐢</span>
+                <div>
+                    <div class="card-title">Gateway Proxy Timeout</div>
+                    <div class="card-service">api-gateway (Go)</div>
                 </div>
             </div>
+            <div class="card-desc">프록시 타임아웃 1초, 체인 응답 2초+ → 502</div>
+            <div class="card-bug">ProxyTimeout = 1 * time.Second</div>
+            <div class="card-fix">패치: ProxyTimeout = 30 * time.Second</div>
+        </div>
+
+        <div class="scenario-card" onclick="selectScenario('pool-exhaustion')" id="card-pool-exhaustion">
+            <div class="card-header">
+                <span class="card-icon">🔌</span>
+                <div>
+                    <div class="card-title">Connection Pool Exhaustion</div>
+                    <div class="card-service">core-business (Java)</div>
+                </div>
+            </div>
+            <div class="card-desc">HikariCP pool 1개 → 동시 요청 시 500</div>
+            <div class="card-bug">maximum-pool-size: 1, connection-timeout: 500</div>
+            <div class="card-fix">패치: maximum-pool-size: 10, connection-timeout: 30000</div>
         </div>
     </div>
 
-    <!-- Log Panel -->
     <div class="log-panel">
         <div class="log-header">
-            <div class="status-dot"></div>
             <h3>Activity Log</h3>
-            <button class="btn btn-reset" style="margin-left:auto" onclick="clearLog()">Clear</button>
+            <button class="btn" style="margin-left:auto;padding:4px 10px;background:#374151;color:#e1e4e8;font-size:0.75rem" onclick="document.getElementById('log').innerHTML=''">Clear</button>
         </div>
         <div id="log"></div>
     </div>
 
     <script>
-        // 모든 요청은 gateway를 통해 MSA 체인으로 흐름:
-        // dashboard → nginx /gateway/ → api-gateway → bff-service → data-worker + core-business
-        const API = '/gateway';
+        let selectedScenario = null;
+        const ARGOCD_APPS = {
+            'db-timeout': 'data-worker',
+            'batch-oom': 'data-worker',
+            'wrong-port': 'bff-service',
+            'upstream-timeout': 'bff-service',
+            'proxy-timeout': 'api-gateway',
+            'pool-exhaustion': 'core-business',
+        };
+        const BUG_BRANCHES = {
+            'db-timeout': 'bug/db-timeout',
+            'batch-oom': 'bug/batch-oom',
+            'wrong-port': 'bug/wrong-port',
+            'upstream-timeout': 'bug/upstream-timeout',
+            'proxy-timeout': 'bug/proxy-timeout',
+            'pool-exhaustion': 'bug/pool-exhaustion',
+        };
 
         function log(msg) {
             const el = document.getElementById('log');
@@ -255,108 +237,97 @@
             el.scrollTop = el.scrollHeight;
         }
 
-        function clearLog() {
-            document.getElementById('log').innerHTML = '';
+        function selectScenario(id) {
+            selectedScenario = id;
+            document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('active'));
+            document.getElementById(`card-${id}`).classList.add('active');
+            document.getElementById('btnInject').disabled = false;
+            log(`📋 시나리오 선택: <b>${id}</b> (branch: ${BUG_BRANCHES[id]}, app: ${ARGOCD_APPS[id]})`);
         }
 
-        async function callAPI(path, count = 1, concurrent = false) {
-            const url = API + path;
-            const results = [];
+        async function injectFault() {
+            if (!selectedScenario) return;
+            const app = ARGOCD_APPS[selectedScenario];
+            const branch = BUG_BRANCHES[selectedScenario];
 
-            if (concurrent) {
-                const promises = Array.from({length: count}, () =>
-                    fetch(url).then(r => r.text().then(t => ({status: r.status, body: t.substring(0, 200)})))
-                             .catch(e => ({status: 0, body: e.message}))
-                );
-                return await Promise.all(promises);
+            log(`🚨 <b>장애 주입 시작</b>: ${app} → targetRevision: ${branch}`);
+            log(`  ArgoCD Application "${app}" 의 소스 브랜치를 변경합니다...`);
+
+            try {
+                // ArgoCD API로 targetRevision 변경
+                const patchBody = JSON.stringify({
+                    spec: { source: { targetRevision: branch } }
+                });
+
+                const res = await fetch(`/argocd/api/v1/applications/${app}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/merge-patch+json' },
+                    body: patchBody,
+                });
+
+                if (res.ok) {
+                    log(`✅ ArgoCD "${app}" → <span style="color:#ef4444">${branch}</span> 브랜치로 전환 완료`);
+                    log(`  ArgoCD auto-sync 대기 중... (30~60초 소요)`);
+                    document.getElementById('statusBadge').className = 'status-badge status-faulty';
+                    document.getElementById('statusBadge').textContent = 'FAULTY';
+                    document.getElementById('btnTraffic').disabled = false;
+                } else {
+                    const text = await res.text();
+                    log(`❌ ArgoCD 패치 실패: HTTP ${res.status} - ${text.substring(0, 200)}`);
+                }
+            } catch (e) {
+                log(`❌ 에러: ${e.message}`);
             }
+        }
 
-            for (let i = 0; i < count; i++) {
+        async function generateTraffic() {
+            log(`🚀 <b>트래픽 발생</b>: /gateway/aggregate 10회 호출...`);
+            log(`  경로: api-gateway → bff-service → data-worker + core-business`);
+
+            let ok = 0, err = 0;
+            for (let i = 0; i < 10; i++) {
                 try {
-                    const r = await fetch(url);
-                    const text = await r.text();
-                    results.push({status: r.status, body: text.substring(0, 200)});
+                    const r = await fetch('/gateway/aggregate');
+                    if (r.ok) ok++; else err++;
+                    const body = await r.text();
+                    log(`  [${i+1}] HTTP ${r.status} ${r.ok ? '' : '- ' + body.substring(0, 100)}`);
                 } catch (e) {
-                    results.push({status: 0, body: e.message});
+                    err++;
+                    log(`  [${i+1}] ❌ ${e.message}`);
                 }
             }
-            return results;
+            log(`📊 결과: ✅ ${ok}건 성공 / ❌ ${err}건 실패`);
+            if (err > 0) {
+                log(`🚨 <span style="color:#ef4444">에러 다수 발생 → vmalert → Alertmanager → 에이전트 자동 가동 예상</span>`);
+            }
         }
 
-        async function runScenario(id) {
-            switch (id) {
-                case 'db-timeout': {
-                    log('🚀 <b>[DB Timeout]</b> gateway → bff → data-worker /process 체인 10회 호출...');
-                    log('  경로: api-gateway → bff-service → data-worker (DB_TIMEOUT=1초 버그)');
-                    const results = await callAPI('/aggregate', 10);
-                    const err504 = results.filter(r => r.status === 504).length;
-                    const err502 = results.filter(r => r.status === 502).length;
-                    const ok = results.filter(r => r.status === 200).length;
-                    results.forEach((r, i) => log(`  [${i+1}] HTTP ${r.status}`));
-                    log(`📊 결과: 200 OK ${ok} / 504 Timeout ${err504} / 502 Error ${err502}`);
-                    if (err504 + err502 > 0) {
-                        log('🚨 <span style="color:#ef4444">에러 다수 발생 → alert 발화 예상 → 에이전트 자동 분석 시작</span>');
-                    }
-                    break;
-                }
+        async function restoreHealthy() {
+            log(`🔄 <b>정상 복구</b>: 모든 ArgoCD 앱을 main 브랜치로 복원...`);
 
-                case 'batch-oom': {
-                    log('🚀 <b>[Batch OOM]</b> gateway → bff → data-worker /process (BATCH_SIZE=10000)...');
-                    log('  대량 배치 처리로 메모리 폭증 → OOMKilled 예상');
-                    const results = await callAPI('/aggregate', 5);
-                    results.forEach((r, i) => log(`  [${i+1}] HTTP ${r.status}: ${r.body.substring(0, 100)}`));
-                    log('💥 data-worker 메모리 사용량 급증 중... OOMKilled 대기');
-                    break;
-                }
-
-                case 'wrong-port': {
-                    log('🚀 <b>[Wrong Port]</b> gateway → bff → data-worker:9999 (잘못된 포트)...');
-                    log('  bff-service config.js에서 DATA_WORKER_PORT=9999 설정됨');
-                    const results = await callAPI('/aggregate', 5);
-                    const err502 = results.filter(r => r.status === 502).length;
-                    results.forEach((r, i) => log(`  [${i+1}] HTTP ${r.status}: ${r.body.substring(0, 100)}`));
-                    if (err502 > 0) {
-                        log(`🚨 <span style="color:#ef4444">502 에러 ${err502}회 - 잘못된 포트로 연결 실패</span>`);
+            const apps = ['data-worker', 'bff-service', 'api-gateway', 'core-business'];
+            for (const app of apps) {
+                try {
+                    const res = await fetch(`/argocd/api/v1/applications/${app}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/merge-patch+json' },
+                        body: JSON.stringify({ spec: { source: { targetRevision: 'main' } } }),
+                    });
+                    if (res.ok) {
+                        log(`  ✅ ${app} → main`);
+                    } else {
+                        log(`  ⚠️ ${app}: HTTP ${res.status}`);
                     }
-                    break;
-                }
-
-                case 'upstream-timeout': {
-                    log('🚀 <b>[Upstream Timeout]</b> gateway → bff (UPSTREAM_TIMEOUT=500ms)...');
-                    log('  bff-service가 500ms 안에 응답 못 받으면 504');
-                    const results = await callAPI('/aggregate', 5);
-                    const err504 = results.filter(r => r.status === 504).length;
-                    results.forEach((r, i) => log(`  [${i+1}] HTTP ${r.status}`));
-                    if (err504 > 0) {
-                        log(`🚨 <span style="color:#ef4444">504 Timeout ${err504}회 - UPSTREAM_TIMEOUT 초과</span>`);
-                    }
-                    break;
-                }
-
-                case 'proxy-timeout': {
-                    log('🚀 <b>[Proxy Timeout]</b> gateway (ProxyTimeout=1초) → bff → downstream...');
-                    log('  api-gateway config.go ProxyTimeout=1s, 체인 응답이 1초 넘으면 502');
-                    const results = await callAPI('/aggregate', 5);
-                    const errors = results.filter(r => r.status >= 500).length;
-                    results.forEach((r, i) => log(`  [${i+1}] HTTP ${r.status}`));
-                    if (errors > 0) {
-                        log(`🚨 <span style="color:#ef4444">Gateway Timeout ${errors}회 - ProxyTimeout=1초 초과</span>`);
-                    }
-                    break;
-                }
-
-                case 'pool-exhaustion': {
-                    log('🚀 <b>[Pool Exhaustion]</b> gateway → bff → core-business (동시 5회)...');
-                    log('  HikariCP max-pool-size=1, 동시 요청 시 connection 대기 → timeout');
-                    const results = await callAPI('/aggregate', 5, true);
-                    const err500 = results.filter(r => r.status === 500).length;
-                    results.forEach((r, i) => log(`  [${i+1}] HTTP ${r.status}`));
-                    if (err500 > 0) {
-                        log(`🚨 <span style="color:#ef4444">500 에러 ${err500}회 - Connection pool 고갈</span>`);
-                    }
-                    break;
+                } catch (e) {
+                    log(`  ❌ ${app}: ${e.message}`);
                 }
             }
+
+            document.getElementById('statusBadge').className = 'status-badge status-healthy';
+            document.getElementById('statusBadge').textContent = 'HEALTHY';
+            document.getElementById('btnTraffic').disabled = true;
+            document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('active'));
+            log(`✅ 전체 복구 완료. ArgoCD auto-sync 대기 중...`);
         }
     </script>
 </body>
