@@ -38,23 +38,61 @@ LangGraph 기반 멀티 에이전트가 MSA 환경의 장애를 자동으로 감
 
 ## 데모 서비스 (폴리글랏 MSA)
 
-| 서비스 | 언어 | 역할 | 의도적 버그 |
-|--------|------|------|------------|
-| api-gateway | Go | 단일 진입점, bff로 프록시 | `ProxyTimeout = 1s` (정상: 30s) |
-| bff-service | Node.js | 어그리게이터 (data-worker + core-business 호출) | `UPSTREAM_TIMEOUT = 500ms`, `DATA_WORKER_PORT = 9999` |
-| data-worker | Python FastAPI | 데이터 처리 | `DB_TIMEOUT = 1s`, `BATCH_SIZE = 10000` |
-| core-business | Java Spring Boot | CRUD + DB | `HikariCP max-pool-size = 1` |
+| 서비스 | 언어 | 역할 |
+|--------|------|------|
+| api-gateway | Go | 단일 진입점, bff로 프록시 |
+| bff-service | Node.js | 어그리게이터 (data-worker + core-business 병렬 호출) |
+| data-worker | Python FastAPI | 데이터 처리 + DB 쿼리 |
+| core-business | Java Spring Boot | CRUD + H2 DB |
+
+## 브랜치 전략 (Bug Branch Architecture)
+
+```
+main            = 정상 상태 (모든 설정값 healthy)
+bug/db-timeout  = data-worker DB_TIMEOUT=1, MAX_RETRIES=0
+bug/batch-oom   = data-worker BATCH_SIZE=10000
+bug/wrong-port  = bff-service DATA_WORKER_PORT=9999
+bug/upstream-timeout = bff-service UPSTREAM_TIMEOUT=500
+bug/proxy-timeout    = api-gateway ProxyTimeout=1s
+bug/pool-exhaustion  = core-business max-pool-size=1
+```
+
+bug 브랜치는 영구 보존되며 에이전트에 의해 수정되지 않습니다.
 
 ## 자가복구 시나리오
 
-| 시나리오 | 장애 현상 | 에이전트 수정 |
-|---------|----------|-------------|
-| DB Timeout | data-worker 504 (쿼리 2.5초, timeout 1초) | `config.py` DB_TIMEOUT = 1 → 30 |
-| Batch OOM | data-worker OOMKilled (배치 10000개) | `config.py` BATCH_SIZE = 10000 → 100 |
-| Wrong Port | bff → data-worker 연결 실패 502 | `config.js` DATA_WORKER_PORT = 9999 → 8000 |
-| Upstream Timeout | bff 504 (timeout 500ms) | `config.js` UPSTREAM_TIMEOUT = 500 → 10000 |
-| Proxy Timeout | gateway 502 (timeout 1초) | `config.go` ProxyTimeout = 1s → 30s |
-| Pool Exhaustion | core-business 500 (pool 1개) | `application.yaml` max-pool-size = 1 → 10 |
+| 시나리오 | Bug Branch | 장애 현상 | 에이전트 패치 |
+|---------|-----------|----------|-------------|
+| DB Timeout | `bug/db-timeout` | 504 (쿼리 2.5초, timeout 1초) | DB_TIMEOUT = 1 → 30 |
+| Batch OOM | `bug/batch-oom` | OOMKilled (배치 10000개) | BATCH_SIZE = 10000 → 100 |
+| Wrong Port | `bug/wrong-port` | 502 (포트 9999 연결 실패) | DATA_WORKER_PORT = 9999 → 8000 |
+| Upstream Timeout | `bug/upstream-timeout` | 504 (timeout 500ms) | UPSTREAM_TIMEOUT = 500 → 10000 |
+| Proxy Timeout | `bug/proxy-timeout` | 502 (gateway timeout 1초) | ProxyTimeout = 1s → 30s |
+| Pool Exhaustion | `bug/pool-exhaustion` | 500 (pool 1개 고갈) | max-pool-size = 1 → 10 |
+
+## 데모 사이클
+
+```
+1. 대시보드에서 시나리오 선택 → "장애 주입" 클릭
+   └─ ArgoCD targetRevision을 bug/* 브랜치로 전환
+   └─ ArgoCD auto-sync → 버그 코드 배포
+
+2. "트래픽 발생" 클릭 → MSA 체인 호출 → 에러 발생
+   └─ VictoriaMetrics 메트릭 쌓임 → vmalert rule 발화
+
+3. Alertmanager → 에이전트 webhook 자동 트리거
+   └─ Monitor: RCA 분석 (한국어)
+   └─ Generator: bug branch 기반 fix PR 생성
+   └─ Evaluator: 코드 리뷰
+
+4. 잔디 알림: "리뷰 승인 대기" + PR 링크
+
+5. 운영자: GitHub PR 리뷰 → Merge
+   └─ ArgoCD가 main 감지 → 정상 코드 배포 → 복구 완료
+
+6. 다시 테스트? → 1번부터 반복 (bug branch는 영구 보존)
+   또는 "정상 복구" 버튼으로 즉시 main 복원
+```
 
 ## 빠른 시작
 
@@ -151,11 +189,9 @@ Client Request (30s)
 
 ## 테스트 후 원복
 
-```bash
-# Generator가 버그를 수정한 후, 데모를 다시 실행하려면:
-./scripts/reset-bugs.sh
-git add -A && git commit -m "reset: 버그 코드 원복" && git push
-```
+Bug branch 아키텍처이므로 원복 스크립트가 필요 없습니다:
+- 대시보드 "정상 복구" 버튼 → 모든 앱 main으로 복원
+- bug branch는 영구 보존 → 다음 데모 시 재사용
 
 ## 프로젝트 구조
 
